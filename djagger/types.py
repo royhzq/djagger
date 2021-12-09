@@ -437,7 +437,6 @@ class DjaggerDoc(BaseModel):
         tags = [
             DjaggerTag(name=tag["name"], description=tag.get("description","")) for tag in tags
         ]
-
         info = DjaggerInfo(
             description=description,
             version=version,

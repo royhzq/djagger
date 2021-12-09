@@ -1,0 +1,8 @@
+# Requirements mainly for Django, DRF, and pydantic.
+# Other packages required mainly for testing or documentation.
+
+Django>=3.2.0
+djangorestframework>=3.12.0
+pydantic>=1.8
+typing_extensions==4.0.0
+pytest>=6.2.0
