@@ -1,3 +1,4 @@
+LICENSE
 MANIFEST.in
 readme.md
 setup.cfg
@@ -6,7 +7,6 @@ djagger/__init__.py
 djagger/apps.py
 djagger/decorators.py
 djagger/enums.py
-djagger/tests.py
 djagger/types.py
 djagger/urls.py
 djagger/utils.py
@@ -16,3 +16,9 @@ djagger.egg-info/SOURCES.txt
 djagger.egg-info/dependency_links.txt
 djagger.egg-info/requires.txt
 djagger.egg-info/top_level.txt
+djagger/templates/redoc.html
+djagger/tests/__init__.py
+djagger/tests/test_views.py
+djagger/tests/tests.py
+djagger/tests/urls.py
+djagger/tests/views.py

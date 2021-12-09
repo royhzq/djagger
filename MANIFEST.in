@@ -1,3 +1,4 @@
 include LICENSE
 include readme.md
+recursive-include djagger/templates *
 recursive-include docs *
