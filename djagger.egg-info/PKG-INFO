@@ -2,10 +2,11 @@ Metadata-Version: 1.2
 Name: djagger
 Version: 0.1
 Summary: Hassle-free, comprehensive OpenAPI documentation generator for Django.
-Home-page: https://www.example.com/
+Home-page: https://github.com/royhzq/djagger
 Author: Roy
 Author-email: royhung@protonmail.com
 License: MIT License
+Download-URL: https://github.com/royhzq/djagger/archive/refs/tags/v0.1.0-alpha.tar.gz
 Description: # Djagger 
         Hassle-free, comprehensive automated OpenAPI document generator for Django.
         
