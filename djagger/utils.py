@@ -57,7 +57,7 @@ def get_url_patterns(app_names : List[str]) -> List[URLPattern]:
         for url_pattern in app.urls.urlpatterns:
             # Must be CBV or Django Rest API class - if no class exists, skip
             if not hasattr(url_pattern, "callback"):
-                raise ValueError(f"URL {name} does not have a callback to a view function.")
+                raise ValueError(f"URL {url_pattern.name} does not have a callback to a view function.")
             url_patterns.append(url_pattern)
 
     return url_patterns
