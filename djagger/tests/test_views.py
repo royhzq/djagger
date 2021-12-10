@@ -1,27 +1,35 @@
 from django.test import TestCase
 from django.http import HttpRequest
 from django.conf import settings
+from django.urls import get_resolver
+
 from ..views import open_api_json, redoc
+from ..utils import get_url_patterns
 
 import json
+import os, sys
 
+# Set path to 'example' Django project
+example_project_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), "example")
+os.chdir(example_project_path)
+sys.path.append(os.getcwd())
+os.environ["DJANGO_SETTINGS_MODULE"] = "example.settings"
 
-DJAGGER_TITLE = "Test OpenAPI View"
-DJAGGER_DESCRIPTION = "Test OpenAPI Description"
+# Setup 'example' Django project
+import django
+django.setup()
 
-settings.configure(
-    ROOT_URLCONF='djagger.tests.urls',
-    DJAGGER_TITLE = DJAGGER_TITLE,
-    DJAGGER_DESCRIPTION = DJAGGER_DESCRIPTION
-)
+def test_get_apps():
+    assert get_url_patterns(['app1', 'app2'])
+
 
 def test_open_api_json():
 
     request = HttpRequest()
     response = open_api_json(request)
     data = json.loads(response.content)
-    assert data['info']['title'] == DJAGGER_TITLE
-    assert data['info']['description'] == DJAGGER_DESCRIPTION
+    assert data['info']['title'] == 'DJAGGER_TITLE' # set in example.settings
+    assert data['info']['description'] == 'DJAGGER_DESCRIPTION' # set in example.settings
 
 def test_redoc():
 
