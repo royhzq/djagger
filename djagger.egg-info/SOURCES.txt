@@ -1,6 +1,5 @@
 LICENSE
 MANIFEST.in
-readme.md
 setup.cfg
 setup.py
 djagger/__init__.py

@@ -7,23 +7,7 @@ Author: Roy
 Author-email: royhung@protonmail.com
 License: MIT License
 Download-URL: https://github.com/royhzq/djagger/archive/refs/tags/v0.1.0-alpha.tar.gz
-Description: # Djagger 
-        Hassle-free, comprehensive automated OpenAPI document generator for Django.
-        
-        ## Quickstart
-        
-        1. Add "djagger" to your INSTALLED_APPS setting like this:
-        ```
-            INSTALLED_APPS = [
-                ...
-                'djagger',
-            ]
-        ```  
-        
-        2. Include the polls URLconf in your project urls.py like this:
-        ```
-            path('djagger/', include('djagger.urls')),
-        ```
+Description: UNKNOWN
 Platform: UNKNOWN
 Classifier: Environment :: Web Environment
 Classifier: Framework :: Django
