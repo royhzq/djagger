@@ -1,6 +1,7 @@
 =====
 Djagger
 =====
+.. image:: https://github.com/royhzq/djagger/actions/workflows/python-package.yml/badge.svg
 Hassle-free, comprehensive automated OpenAPI document generator for Django.
 
 Quick start
