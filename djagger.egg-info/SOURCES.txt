@@ -20,5 +20,3 @@ djagger/templates/redoc.html
 djagger/tests/__init__.py
 djagger/tests/test_views.py
 djagger/tests/tests.py
-djagger/tests/urls.py
-djagger/tests/views.py
