@@ -6,14 +6,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 
 ## [1.0.2] - 2021-12-11
+
 ### Changed
 - Fixed more template bugs.
 
 ## [1.0.1] - 2021-12-11
+
 ### Changed
 - Fixed template bugs.
 
 ## [1.0.0] - 2021-12-11
+
 ### Changed
 - Renamed `types.py` to more appropriate `schema.py`.
 - Removed `.egg-info` files from version control.

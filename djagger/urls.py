@@ -3,6 +3,6 @@ from .views import redoc, open_api_json
 
 urlpatterns = [
     path('api/docs', redoc, name='djagger_doc'),
-    path('api/schema.json',open_api_json, name='djagger_json')
+    path('schema.json',open_api_json, name='djagger_json')
 ]
  
