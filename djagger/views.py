@@ -3,7 +3,7 @@ from django.http import JsonResponse, HttpRequest, HttpResponse
 from django.conf import settings
 
 from .decorators import schema
-from .types import DjaggerDoc
+from .schema import DjaggerDoc
 
 import os
 
