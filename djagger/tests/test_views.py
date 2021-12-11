@@ -28,8 +28,10 @@ def test_open_api_json():
     request = HttpRequest()
     response = open_api_json(request)
     data = json.loads(response.content)
+    assert response.status_code == 200
     assert data['info']['title'] == 'DJAGGER_TITLE' # set in example.settings
     assert data['info']['description'] == 'DJAGGER_DESCRIPTION' # set in example.settings
+    # print(json.dumps(data))
 
 def test_redoc():
 

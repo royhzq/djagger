@@ -1,8 +1,14 @@
 from pydantic import BaseModel, Field
 
 
-class ExampleFBVGetQueryParams(BaseModel):
+class ExampleCBVGetQueryParams(BaseModel):
     foo : str = Field(description="foo")
 
-class ExampleFBVPostBodyParams(BaseModel):
+class ExampleCBVPostBodyParams(BaseModel):
     foo : str = Field(description="foo")
+
+    @classmethod
+    def example(cls):
+        return cls(
+            foo="Example post field value"
+        )

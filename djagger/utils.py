@@ -1,10 +1,10 @@
 from django.apps import apps
-from django.urls import URLPattern, URLResolver
-from django.urls import get_resolver
+from django.urls import URLPattern, URLResolver, get_resolver
 from typing import List, Type
 from pydantic.main import ModelMetaclass # Abstract classes derived from BaseModel
 
 from enum import Enum
+import warnings
 
 def djagger_method_enum_factory(name: str, method : str) -> Enum:
 
@@ -43,7 +43,13 @@ def get_url_patterns(app_names : List[str]) -> List[URLPattern]:
     """
     # List of app modules
     get_resolver().reverse_dict # Make this call to init URLS if this function is used in django shell
-    app_list = [apps.app_configs.get(name).module for name in app_names if name in apps.app_configs ] 
+
+    if app_names:
+        # if app_names is not empty - only consider apps listed in app_names
+        app_list = [apps.app_configs.get(name).module for name in app_names if name in apps.app_configs ] 
+    else:
+        # else consider all installed apps, less djagger app itself
+        app_list = [ app_config.module for app_config in apps.app_configs.values() if app_config.name != 'djagger' ]
     
     url_patterns = [] 
 
@@ -51,8 +57,10 @@ def get_url_patterns(app_names : List[str]) -> List[URLPattern]:
         
         if not hasattr(app, 'urls'):
             continue
+
         if not hasattr(app.urls, 'urlpatterns'):
-            raise ValueError(f"urlpatterns not found in {app.__name__}")
+            warnings.warn(f"Warning: urlpatterns not found in {app.__name__}")
+            continue
 
         for url_pattern in app.urls.urlpatterns:
             # Must be CBV or Django Rest API class - if no class exists, skip
