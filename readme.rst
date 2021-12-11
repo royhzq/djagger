@@ -1,6 +1,6 @@
-=====
+=======
 Djagger
-=====
+=======
 
 .. |Package Badge| image:: https://github.com/royhzq/djagger/actions/workflows/python-package.yml/badge.svg
 .. |Pypi Badge| image:: https://badge.fury.io/py/djagger.svg
