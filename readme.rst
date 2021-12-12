@@ -196,5 +196,5 @@ To include multiple responses for the above endpoint, for example, an error resp
 Documentation & Support
 -----------------------
 * Full documentation is currently a work in progress.
-* This project is in continuous development. If you have any questions or would like to contribute, please email `royhung@proonmail.com <royhung@protonmail.com>`_
+* This project is in continuous development. If you have any questions or would like to contribute, please email `royhung@protonmail.com <royhung@protonmail.com>`_
 * If you want to support this project, do give it a ⭐ on github!
