@@ -1,3 +1,9 @@
+"""
+Djagger Schema Objects
+====================================
+The core module of Djagger project
+"""
+
 # Types for OpenAPI swagger document
 
 from pydantic import BaseModel, Field, ValidationError, validator
@@ -357,10 +363,15 @@ class DjaggerPath(BaseModel):
 
 class DjaggerDoc(BaseModel):
     
-    """OpenAPI base document"""
+    """
+    OpenAPI base document
+
+    Args:
+        swagger (str) : Swagger version number.
+    """
 
     swagger : str = "2.0"
-    info : DjaggerInfo = DjaggerInfo()
+    info : DjaggerInfo
     host : str = ""
     basePath : str = ""
     tags : List[DjaggerTag] = []
@@ -372,10 +383,10 @@ class DjaggerDoc(BaseModel):
     @staticmethod
     def clean_route(route : str) -> str:
         """ Converts a django path route string format into an openAPI route format.
+
         Example:
-            Django format: '/list/<int:pk>' 
-                to
-            OpenAPI format: '/list/{pk}'
+            Django format: `/list/<int:pk>` to OpenAPI format: `/list/{pk}`.
+
         """
         return re.sub(r'<[a-zA-Z0-9\-\_]*:([a-zA-Z0-9\-\_]*)>', r'{\1}', route)
 

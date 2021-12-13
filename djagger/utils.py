@@ -1,3 +1,9 @@
+"""
+Utility functions
+====================================
+The core module of Djagger project
+"""
+
 from django.apps import apps
 from django.urls import URLPattern, URLResolver, get_resolver
 from typing import List, Type
