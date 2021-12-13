@@ -6,11 +6,12 @@ The core module of Djagger project
 
 from django.apps import apps
 from django.urls import URLPattern, URLResolver, get_resolver
-from typing import List, Type
+from typing import List, Type, Callable
 from pydantic.main import ModelMetaclass # Abstract classes derived from BaseModel
 
 from enum import Enum
 import warnings
+import re
 
 def djagger_method_enum_factory(name: str, method : str) -> Enum:
 
@@ -53,7 +54,7 @@ def get_url_patterns(app_names : List[str]) -> List[URLPattern]:
 
     """
     # List of app modules
-    get_resolver().reverse_dict # Make this call to init URLS if this function is used in django shell
+    resolver_dict = get_resolver().reverse_dict # Make this call to init URLS if this function is used in django shell
 
     if app_names:
         # if app_names is not empty - only consider apps listed in app_names
@@ -77,10 +78,28 @@ def get_url_patterns(app_names : List[str]) -> List[URLPattern]:
             # Must be CBV or Django Rest API class - if no class exists, skip
             if not hasattr(url_pattern, "callback"):
                 raise ValueError(f"URL {url_pattern.name} does not have a callback to a view function.")
+            
+            # Add in additional attribute of the schema url pattern
+            try:
+                full_path_pattern = resolver_dict[url_pattern.callback][0][0][0]
+                url_pattern._schema_path = clean_resolver_url_pattern(full_path_pattern)
+            except:
+                waringins.warn(f"get_url_patterns() : Unable to clean schema pattern - {url_pattern.name}")
+                url_pattern._schema_path = url_pattern.pattern._route
+                
             url_patterns.append(url_pattern)
 
     return url_patterns
 
+def clean_resolver_url_pattern(route : str) -> str:
+    """ Cleans the full url path pattern from a url resolver into a OpenAPI schema url pattern.
+
+    Example:
+
+    "toy/%(toyId)s/uploadImage" to "toy/{toyId}/uploadImage"
+
+    """ 
+    return re.sub(r'\%\(([a-zA-Z0-9\-\_]*)\)s', r'{\1}', route)
             
 def base_model_set_examples(base_model : ModelMetaclass):
     """ Check if a class has callable `example()` and if so, sets the schema 'example' field

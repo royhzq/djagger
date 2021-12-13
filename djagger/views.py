@@ -21,7 +21,7 @@ def open_api_json(request : HttpRequest):
         license_name = getattr(settings, 'DJAGGER_LICENSE_NAME', ""),
         license_url = getattr(settings, 'DJAGGER_LICENSE_URL', ""),
         basePath = getattr(settings, 'DJAGGER_BASEPATH', ""),
-        tags = getattr(settings, 'DJAGGER_TAGS', ""),
+        tags = getattr(settings, 'DJAGGER_TAGS', []),
         version = getattr(settings, 'DJAGGER_VERSION', "1.0.5"),
         title = getattr(settings, 'DJAGGER_TITLE', "Djagger OpenAPI Documentation"),
         schemes = getattr(settings, 'DJAGGER_SCHEMES', ['http','https']),

@@ -8,6 +8,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Support for redoc-specific fields for `x-logo` and `x-tagGroups` and the corresponding Djagger objects `DjaggerLogo` and `DjaggerTagGroup`.
 
+### Changed
+- Updated `get_url_patterns()` to fix bug where url pattern route retrieved does not have prefixed path
+
 ## [1.0.3] - 2021-12-11
 
 ### Changed
