@@ -45,7 +45,12 @@ def djagger_method_enum_factory(name: str, method : str) -> Enum:
 
 def get_url_patterns(app_names : List[str]) -> List[URLPattern]:
     """ Given a list of app names in the project, return a filtered list of URLPatterns that contain a class-based view or Django Rest Framework API class.
+
     Function-based views are not included in the returned list.
+
+    Args:
+        app_names (List[str]): List of app names to retrieve ``URLPattern`` objects from.
+
     """
     # List of app modules
     get_resolver().reverse_dict # Make this call to init URLS if this function is used in django shell

@@ -29,6 +29,33 @@ import warnings
 import inspect
 import re
 
+class DjaggerLogo(BaseModel):
+    """ Logo image for display on redoc documents. 
+    """
+    url : Optional[str]
+    altText : Optional[str]
+
+class DjaggerExternalDocs(BaseModel):
+    description: Optional[str]
+    url : Optional[str]
+
+class DjaggerTag(BaseModel):
+    """ OpenAPI `tags` """
+    name : str = ""
+    description : str = ""
+    externalDocs : Optional[DjaggerExternalDocs]
+
+class DjaggerContact(BaseModel):
+    """ OpenAPI `contact` object"""
+    name : Optional[str]
+    url : Optional[str]
+    email : Optional[str]
+
+class DjaggerLicense(BaseModel):
+    """ OpenAPI `license` object"""
+    name : Optional[str]
+    url : Optional[str]
+
 class DjaggerInfo(BaseModel):
 
     """OpenAPI document information"""
@@ -37,21 +64,24 @@ class DjaggerInfo(BaseModel):
     version : str = "1.0.5"
     title : str = "Djagger OpenAPI Documentation"
     termsOfService : str = Field("",description="Reference to any TOS")
-    contact : Dict[str, str] = Field({"email":"example@example.com"}, description="Dict of contact information")
-    license : Dict[str, str] = {
-        "name": "Apache 2.0",
-        "url": "http://www.apache.org/licenses/LICENSE-2.0.html"
-    }
+    contact : DjaggerContact = Field({"email":"example@example.com"}, description="Dict of contact information")
+    x_logo : Optional[DjaggerLogo] = Field(alias="x-logo")
+    license : Optional[DjaggerLicense]
 
-class DjaggerExternalDocs(BaseModel):
-    description: str
-    url : str
+    class Config:
+        allow_population_by_field_name = True
 
-class DjaggerTag(BaseModel):
-    """ OpenAPI `tags` """
-    name : str = ""
-    description : str = ""
-    externalDocs : Optional[DjaggerExternalDocs]
+
+class DjaggerTagGroup(BaseModel):
+    """ Tag grouping for ``x-tagGroups`` setting in redoc. 
+    This beyond the OpenAPI 3.0 specs but is included for redoc.
+
+    Args:
+        name (str): Name of Tag grouping.
+        tags (List[str]): List of Tag names to include in the grouping.
+    """
+    name : str 
+    tags : List[str] 
 
 class DjaggerParameter(BaseModel):
     """ OpenAPI object that includes schema and other details for the particular API endpoint. For POST params """
@@ -368,7 +398,16 @@ class DjaggerDoc(BaseModel):
 
     Args:
         swagger (str) : Swagger version number.
-    """
+        info (DjaggerInfo) : ``DjaggerInfo`` object.
+        host (str): Hostname for APIs.
+        basePath (str): Base path of URL e.g., ``/V1``.
+        tags (List[DjaggerTag]) : List of ``DjaggerTag`` objects.
+        schemes (List[str]) : List of URL schemes. Defaults to ``['http', 'https']``.
+        paths (Dict[str, DjaggerPath]): Dictionary containing route as the key and ``DjaggerPath`` object as its value.
+        securityDefinitions (Dict): WIP
+        definitions (Dict[str, dict]): Dictionary containing OpenAPI definitions.
+        x_tag_groups (List[DjaggerTagGroup]) : List of ``DjaggerTagGroup`` tag groupings if any.
+    """ 
 
     swagger : str = "2.0"
     info : DjaggerInfo
@@ -379,6 +418,10 @@ class DjaggerDoc(BaseModel):
     paths : Dict[str, DjaggerPath] = {}
     securityDefinitions : dict = {} # Incomplete
     definitions : Dict[str, dict] = {}
+    x_tag_groups : Optional[List[DjaggerTagGroup]] = Field(alias="x-tagGroups")
+
+    class Config:
+        allow_population_by_field_name = True
 
     @staticmethod
     def clean_route(route : str) -> str:
@@ -453,15 +496,15 @@ class DjaggerDoc(BaseModel):
             version=version,
             title=title,
             termsOfService=terms_of_service,
-            contact={
-                "name":contact_name,
-                "email":contact_email,
-                "url":contact_url
-            },
-            license={
-                "name":license_name,
-                "url":license_url
-            },
+            contact=DjaggerContact(
+                name=contact_name,
+                email=contact_email,
+                url=contact_url
+            ),
+            license=DjaggerLicense(
+                name=license_name,
+                url=license_url
+            ),
         )
         document = cls(
             swagger=swagger,
