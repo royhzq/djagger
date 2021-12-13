@@ -63,3 +63,5 @@ html_static_path = ['_static']
 autodoc_typehints = 'description'
 autodoc_class_signature = 'separated'
 autodoc_preserve_defaults = True
+
+napoleon_use_rtype = False
