@@ -1,6 +1,10 @@
 from ..schema import (
-    DjaggerInfo, DjaggerLogo, DjaggerExternalDocs, DjaggerTag,
-    DjaggerContact, DjaggerLicense
+    DjaggerInfo, 
+    DjaggerLogo, 
+    DjaggerExternalDocs, 
+    DjaggerTag,
+    DjaggerContact, 
+    DjaggerLicense
 )
 
 def test_djagger_logo():
@@ -10,7 +14,6 @@ def test_djagger_logo():
     ).dict()
 
     assert data
-
 
 def test_djagger_external_docs():
     data = DjaggerExternalDocs(
@@ -45,7 +48,6 @@ def test_djagger_license():
         url="license Url"
     ).dict()
     assert data
-
 
 def test_djagger_info():
 
