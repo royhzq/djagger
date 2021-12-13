@@ -79,13 +79,20 @@ def get_url_patterns(app_names : List[str]) -> List[URLPattern]:
             if not hasattr(url_pattern, "callback"):
                 raise ValueError(f"URL {url_pattern.name} does not have a callback to a view function.")
             
-            # Add in additional attribute of the schema url pattern
+            # Add the attribute _schema_path to each url pattern
+            # TODO: Refactor retrieving full URL pattern including prefixes below
             try:
                 full_path_pattern = resolver_dict[url_pattern.callback][0][0][0]
                 url_pattern._schema_path = clean_resolver_url_pattern(full_path_pattern)
             except:
                 waringins.warn(f"get_url_patterns() : Unable to clean schema pattern - {url_pattern.name}")
-                url_pattern._schema_path = url_pattern.pattern._route
+                # If unable to get fully formed URL pattern, fallback to getting route pattern
+                if hasattr(url_pattern.pattern, '_route'):
+                    url_pattern._schema_path = clean_route_url_pattern(url_pattern.pattern._route)
+                elif hasattr(url_pattern.pattern, 'regex'):
+                    url_pattern._schema_path = url_pattern.pattern.regex.pattern.replace("^", "").replace("$", "")
+                else:
+                    raise AttributeError("urlpattern does not contain _route or regex. Make sure you are using path() in your url patterns")
                 
             url_patterns.append(url_pattern)
 
@@ -94,13 +101,37 @@ def get_url_patterns(app_names : List[str]) -> List[URLPattern]:
 def clean_resolver_url_pattern(route : str) -> str:
     """ Cleans the full url path pattern from a url resolver into a OpenAPI schema url pattern.
 
-    Example:
+    Args:
+        route (str): Full URL path pattern including any prefixed paths.
 
-    "toy/%(toyId)s/uploadImage" to "toy/{toyId}/uploadImage"
+    Returns:
+        str: OpenAPI path format
+
+    Example::
+
+        >>clean_resolver_url_pattern("toy/%(toyId)s/uploadImage")
+        toy/{toyId}/uploadImage
 
     """ 
     return re.sub(r'\%\(([a-zA-Z0-9\-\_]*)\)s', r'{\1}', route)
             
+def clean_route_url_pattern(route : str) -> str:
+    """ Converts a django path route string format into an openAPI route format.
+
+    Args:
+        route (str): URL path pattern from URLPattern object.
+
+    Returns:
+        str: OpenAPI path format
+
+    Example::
+
+        >>clean_route_url_pattern("/list/<int:pk>")
+        /list/{pk}
+
+    """
+    return re.sub(r'<[a-zA-Z0-9\-\_]*:([a-zA-Z0-9\-\_]*)>', r'{\1}', route)
+
 def base_model_set_examples(base_model : ModelMetaclass):
     """ Check if a class has callable `example()` and if so, sets the schema 'example' field
     to the result of `example()` callable. The callable should return an instance of the pydantic base model type.

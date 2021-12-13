@@ -423,15 +423,6 @@ class DjaggerDoc(BaseModel):
     class Config:
         allow_population_by_field_name = True
 
-    @staticmethod
-    def clean_route(route : str) -> str:
-        """ Converts a django path route string format into an openAPI route format.
-
-        Example:
-            Django format: `/list/<int:pk>` to OpenAPI format: `/list/{pk}`.
-
-        """
-        return re.sub(r'<[a-zA-Z0-9\-\_]*:([a-zA-Z0-9\-\_]*)>', r'{\1}', route)
 
 
     @classmethod
@@ -451,7 +442,8 @@ class DjaggerDoc(BaseModel):
         contact_email = "",
         contact_url = "",
         license_name = "",
-        license_url = ""
+        license_url = "",
+        x_tag_groups : List[DjaggerTagGroup]= []
     ) -> dict :
         """ Inspects URLPatterns in given list of apps to generate the openAPI json object for the Django project.
         Returns the JSON string object for the resulting OAS document.
@@ -461,17 +453,8 @@ class DjaggerDoc(BaseModel):
         paths : Dict[str, DjaggerPath] = {}
 
         for url_pattern in url_patterns:
-            # Either `path()` or `re_path()` are valid
-            # `re_path()` does not have _route attribute
-            if hasattr(url_pattern.pattern, '_route'):
-                route = "/" + url_pattern.pattern._route
-            elif hasattr(url_pattern.pattern, 'regex'):
-                route = "/" + url_pattern.pattern.regex.pattern.replace("^", "").replace("$", "")
-                warnings.warn("Warning: re_path is not recommended. Please use path() for url patterns if possible.")
-            else:
-                raise AttributeError("urlpattern does not contain _route or regex. Make sure you are using path() in your url patterns")
 
-            route = DjaggerDoc.clean_route(route)
+            route = url_pattern._schema_path # _schema_path set in get_url_params()
 
             try:
                 view = url_pattern.callback.view_class # Class-based View
@@ -514,6 +497,7 @@ class DjaggerDoc(BaseModel):
             schemes=schemes,
             tags=tags,
             paths=paths,
+            x_tag_groups=x_tag_groups,
         )
 
         return document.dict(by_alias=True, exclude_none=True)

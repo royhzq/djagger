@@ -27,7 +27,8 @@ def open_api_json(request : HttpRequest):
         schemes = getattr(settings, 'DJAGGER_SCHEMES', ['http','https']),
         swagger = getattr(settings, 'DJAGGER_SWAGGER', "2.0"),
         host = getattr(settings, 'DJAGGER_HOST', "example.org"),
-        terms_of_service = getattr(settings, 'DJAGGER_TERMS_OF_SERVICE', "")
+        terms_of_service = getattr(settings, 'DJAGGER_TERMS_OF_SERVICE', ""),
+        x_tag_groups = getattr(settings, 'DJAGGER_X_TAG_GROUPS', [])
     )
 
     response = JsonResponse(document)
