@@ -379,6 +379,27 @@ class DjaggerPath(BaseModel):
                         setattr(path, http_method.value, DjaggerEndPoint._from(view, http_method))
 
         elif inspect.isfunction(view):
+
+            # Handle DRF ViewSets 
+            # DRF ViewSets are function based views with an ``actions`` attr which is a dict
+            # of http_methods as keys. 
+
+            # TODO: Handle each ViewSet function with separate schemas, treating each function
+            # `retrieve`, `list` etc. as one FBV each
+            
+            if hasattr(view, 'actions'):
+                for k in view.actions.keys():
+                    try:
+                        http_method = HttpMethod(k)
+                    except ValueError:
+                        continue
+    
+                    setattr(
+                        path, 
+                        http_method, 
+                        DjaggerEndPoint._from(view, http_method)
+                    )
+
             # For FBVs, check for existence of http methods from the `djagger_http_methods` attribute
             # set by the @schema decorator
 
@@ -452,21 +473,19 @@ class DjaggerDoc(BaseModel):
         url_patterns = get_url_patterns(app_names)
         paths : Dict[str, DjaggerPath] = {}
 
-        for url_pattern in url_patterns:
-
-            route = url_pattern._schema_path # _schema_path set in get_url_params()
+        for route, url_pattern in url_patterns:
 
             try:
                 view = url_pattern.callback.view_class # Class-based View
             except AttributeError:
-                view = url_pattern.callback # Function-based View
+                view = url_pattern.callback # Function-based View / ViewSet 
             
             if hasattr(view, DjaggerAPIAttributes.DJAGGER_EXCLUDE.value):
                 # Exclude generating docs for views with `djagger_exclude=True`
                 if view.djagger_exclude:
                     continue
             
-            paths[route] = DjaggerPath.create(view)
+            paths["/" + route] = DjaggerPath.create(view)
 
         # Create tag objects as provided
         # Note that if tags supplied is empty, they will still be generated when

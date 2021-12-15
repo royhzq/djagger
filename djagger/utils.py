@@ -6,11 +6,12 @@ The core module of Djagger project
 
 from django.apps import apps
 from django.urls import URLPattern, URLResolver, get_resolver
+from django.urls.resolvers import RegexPattern, RoutePattern, _route_to_regex
 from rest_framework import fields, serializers
 from typing import List, Type, Callable
 from pydantic import create_model
 from pydantic.main import ModelMetaclass # Abstract classes derived from BaseModel
-from typing import List, Dict, Optional
+from typing import List, Dict, Optional, Union, Tuple
 from decimal import Decimal
 from enum import Enum
 import warnings
@@ -46,60 +47,19 @@ def djagger_method_enum_factory(name: str, method : str) -> Enum:
 
     return Enum(name, prefixed_attrs)
 
+def get_app_name(module : str) -> str:
+    """ Given the value of ``__module__`` dunder attr, return the
+    name of the top level module i.e. the app name.
 
-def get_url_patterns(app_names : List[str]) -> List[URLPattern]:
-    """ Given a list of app names in the project, return a filtered list of URLPatterns that contain a class-based view or Django Rest Framework API class.
+    Example::
 
-    Function-based views are not included in the returned list.
-
-    Args:
-        app_names (List[str]): List of app names to retrieve ``URLPattern`` objects from.
+        >>get_app_name('MyApp.urls.resolvers')
+        'MyApp'
 
     """
-    # List of app modules
-    resolver_dict = get_resolver().reverse_dict # Make this call to init URLS if this function is used in django shell
 
-    if app_names:
-        # if app_names is not empty - only consider apps listed in app_names
-        app_list = [apps.app_configs.get(name).module for name in app_names if name in apps.app_configs ] 
-    else:
-        # else consider all installed apps, less djagger app itself
-        app_list = [ app_config.module for app_config in apps.app_configs.values() if app_config.name != 'djagger' ]
-    
-    url_patterns = [] 
+    return module.split('.')[0]
 
-    for app in app_list:
-        
-        if not hasattr(app, 'urls'):
-            continue
-
-        if not hasattr(app.urls, 'urlpatterns'):
-            warnings.warn(f"Warning: urlpatterns not found in {app.__name__}")
-            continue
-
-        for url_pattern in app.urls.urlpatterns:
-            # Must be CBV or Django Rest API class - if no class exists, skip
-            if not hasattr(url_pattern, "callback"):
-                raise ValueError(f"URL {url_pattern.name} does not have a callback to a view function.")
-            
-            # Add the attribute _schema_path to each url pattern
-            # TODO: Refactor retrieving full URL pattern including prefixes below
-            try:
-                full_path_pattern = resolver_dict[url_pattern.callback][0][0][0]
-                url_pattern._schema_path = clean_resolver_url_pattern(full_path_pattern)
-            except:
-                warnings.warn(f"get_url_patterns() : Unable to clean schema pattern - {url_pattern.pattern.name}")
-                # If unable to get fully formed URL pattern, fallback to getting route pattern
-                if hasattr(url_pattern.pattern, '_route'):
-                    url_pattern._schema_path = clean_route_url_pattern(url_pattern.pattern._route)
-                elif hasattr(url_pattern.pattern, 'regex'):
-                    url_pattern._schema_path = url_pattern.pattern.regex.pattern.replace("^", "").replace("$", "")
-                else:
-                    raise AttributeError("urlpattern does not contain _route or regex. Make sure you are using path() in your url patterns")
-                
-            url_patterns.append(url_pattern)
-
-    return url_patterns
 
 def clean_resolver_url_pattern(route : str) -> str:
     """ Cleans the full url path pattern from a url resolver into a OpenAPI schema url pattern.
@@ -118,6 +78,7 @@ def clean_resolver_url_pattern(route : str) -> str:
     """ 
     return re.sub(r'\%\(([a-zA-Z0-9\-\_]*)\)s', r'{\1}', route)
             
+            
 def clean_route_url_pattern(route : str) -> str:
     """ Converts a django path route string format into an openAPI route format.
 
@@ -134,6 +95,93 @@ def clean_route_url_pattern(route : str) -> str:
 
     """
     return re.sub(r'<[a-zA-Z0-9\-\_]*:([a-zA-Z0-9\-\_]*)>', r'{\1}', route)
+
+
+def clean_regex_string(s : str) -> str:
+    """ Converts regex string pattern for a path into OpenAPI format.
+
+    Example::
+
+        >>s = '^toy\\/^(?P<toyId>[a-zA-Z0-9\-\_]+)\\/details'
+        >>clean_regex_string(s)
+        'toy/{toyId}/details'
+
+    """
+    s = s.replace("^", "").replace("\\", "")
+    regex_pattern = r'\(\?P<([a-zA-Z0-9\-\_]*)>.*\)'
+    return re.sub(regex_pattern, r'{\1}', s).replace("?","").replace("$","")
+
+
+def get_pattern_str(pattern: Union[RegexPattern, RoutePattern]) -> str:
+    """ Given a URLPattern.pattern, or a URLResolver.pattern, return
+    the path string in regex form.
+
+    A pattern can exist as ``RegexPattern`` or ``RoutePattern``. The 
+    string returned will be in the regex pattern form for consistency
+    """
+
+    if isinstance(pattern, RegexPattern):
+        return pattern._regex
+
+    elif isinstance(pattern, RoutePattern):
+        return _route_to_regex(pattern._route)[0]
+
+    raise TypeError(f"pattern is of type {type(pattern)}. Needs to be RegexPattern or RoutePattern")
+
+
+def list_urls(resolver : URLResolver, prefix='') -> List[Tuple[str, URLPattern]]:
+
+    """ Returns a list of tuples containing the 'cleaned' full url path and the
+    corresponding URLPattern object
+    """
+    
+    urls = resolver.url_patterns
+    
+    results = []
+
+    for url in urls:
+        if isinstance(url, URLResolver):
+            prefix = get_pattern_str(url.pattern)
+            nested_results = list_urls(url, prefix=prefix)
+            results += nested_results
+            continue
+
+        url_pattern = prefix + get_pattern_str(url.pattern)
+        results.append(
+            (clean_regex_string(url_pattern), url)
+        )
+    
+    return results
+
+
+def get_url_patterns(app_names : List[str]) -> List[Tuple[str, URLPattern]]:
+    """ Given a list of app names in the project, return a filtered list of URLPatterns that contains a view function or class
+    that are part of the listed apps. Include all apps, less ``djagger`` if ``app_names`` is an empty list.
+    """
+    # List of app modules
+    results = []
+
+    for path, url_pattern in list_urls(get_resolver()):
+
+        if not hasattr(url_pattern, 'callback'):
+            continue
+
+        if not url_pattern.callback:
+            continue
+
+        path_app_name = get_app_name(url_pattern.callback.__module__)
+
+        if path_app_name == 'djagger':
+            continue
+
+        if app_names:
+
+            if path_app_name not in app_names:
+                continue
+        
+        results.append((path, url_pattern))
+
+    return results
 
 def base_model_set_examples(base_model : ModelMetaclass):
     """ Check if a class has callable `example()` and if so, sets the schema 'example' field
