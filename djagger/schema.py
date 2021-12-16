@@ -1,10 +1,18 @@
+"""
+Djagger Schema Objects
+====================================
+The core module of Djagger project
+"""
+
 # Types for OpenAPI swagger document
 
 from pydantic import BaseModel, Field, ValidationError, validator
 from pydantic.main import ModelMetaclass # Abstract classes derived from BaseModel
+from rest_framework import serializers
 from typing import Optional, List, Dict, Union, Type
 from enum import Enum
 from .utils import base_model_set_examples, get_url_patterns
+from .serializers import SerializerConverter
 from .enums import (
     HttpMethod, 
     ParameterLocation, 
@@ -23,6 +31,33 @@ import warnings
 import inspect
 import re
 
+class DjaggerLogo(BaseModel):
+    """ Logo image for display on redoc documents. 
+    """
+    url : Optional[str]
+    altText : Optional[str]
+
+class DjaggerExternalDocs(BaseModel):
+    description: Optional[str]
+    url : Optional[str]
+
+class DjaggerTag(BaseModel):
+    """ OpenAPI `tags` """
+    name : str = ""
+    description : str = ""
+    externalDocs : Optional[DjaggerExternalDocs]
+
+class DjaggerContact(BaseModel):
+    """ OpenAPI `contact` object"""
+    name : Optional[str]
+    url : Optional[str]
+    email : Optional[str]
+
+class DjaggerLicense(BaseModel):
+    """ OpenAPI `license` object"""
+    name : Optional[str]
+    url : Optional[str]
+
 class DjaggerInfo(BaseModel):
 
     """OpenAPI document information"""
@@ -31,21 +66,24 @@ class DjaggerInfo(BaseModel):
     version : str = "1.0.5"
     title : str = "Djagger OpenAPI Documentation"
     termsOfService : str = Field("",description="Reference to any TOS")
-    contact : Dict[str, str] = Field({"email":"example@example.com"}, description="Dict of contact information")
-    license : Dict[str, str] = {
-        "name": "Apache 2.0",
-        "url": "http://www.apache.org/licenses/LICENSE-2.0.html"
-    }
+    contact : DjaggerContact = Field({"email":"example@example.com"}, description="Dict of contact information")
+    x_logo : Optional[DjaggerLogo] = Field(alias="x-logo")
+    license : Optional[DjaggerLicense]
 
-class DjaggerExternalDocs(BaseModel):
-    description: str
-    url : str
+    class Config:
+        allow_population_by_field_name = True
 
-class DjaggerTag(BaseModel):
-    """ OpenAPI `tags` """
-    name : str = ""
-    description : str = ""
-    externalDocs : Optional[DjaggerExternalDocs]
+
+class DjaggerTagGroup(BaseModel):
+    """ Tag grouping for ``x-tagGroups`` setting in redoc. 
+    This beyond the OpenAPI 3.0 specs but is included for redoc.
+
+    Args:
+        name (str): Name of Tag grouping.
+        tags (List[str]): List of Tag names to include in the grouping.
+    """
+    name : str 
+    tags : List[str] 
 
 class DjaggerParameter(BaseModel):
     """ OpenAPI object that includes schema and other details for the particular API endpoint. For POST params """
@@ -121,6 +159,10 @@ class DjaggerResponse(BaseModel):
         def _from(cls, model : ModelMetaclass) -> 'DjaggerResponse':
             """ Instantiate DjaggerResponse from a pydantic type model
             """
+
+            if not isinstance(model, ModelMetaclass):
+                raise ValueError("Model in response schema must be pydantic.main.ModelMetaclass type")
+
             base_model_set_examples(model)
             return cls(
                 description = model.__doc__ if model.__doc__ else "",
@@ -266,6 +308,10 @@ class DjaggerEndPoint(BaseModel):
                 continue
             request_schema = getattr(view, attr.value)
 
+            # Converting serializers to pydantic models
+            if isinstance(request_schema, serializers.SerializerMetaclass):
+                request_schema = SerializerConverter(s=request_schema()).to_model()
+
             self.parameters += DjaggerParameter.to_parameters(request_schema, attr)
 
         return
@@ -286,13 +332,20 @@ class DjaggerEndPoint(BaseModel):
             responses = { 
                 '200': DjaggerResponse._from(response_schema)
             }
+        # When attribute is a Serializer - assume 200 response only
+        elif isinstance(response_schema, serializers.SerializerMetaclass):
+            responses = {
+                '200': DjaggerResponse._from(SerializerConverter(s=response_schema()).to_model())
+            }
+        # When attribute is a dict of responses, prepare dict of DjaggerResponse values
         elif isinstance(response_schema, Dict):
-            # When attribute is a dict of responses, prepare dict of DjaggerResponse values
             for status_code, model in response_schema.items():
                 if not isinstance(status_code, str):
                     raise ValueError("key in response schema dict needs to be string")
-                if not isinstance(model, ModelMetaclass):
-                    raise ValueError("Model in response schema must be pydantic.main.ModelMetaclass type")
+
+                # Converting serializers to pydantic models
+                if isinstance(model, serializers.SerializerMetaclass):
+                    model = SerializerConverter(s=model()).to_model()
 
                 responses[status_code] = DjaggerResponse._from(model)
         
@@ -343,6 +396,27 @@ class DjaggerPath(BaseModel):
                         setattr(path, http_method.value, DjaggerEndPoint._from(view, http_method))
 
         elif inspect.isfunction(view):
+
+            # Handle DRF ViewSets 
+            # DRF ViewSets are function based views with an ``actions`` attr which is a dict
+            # of http_methods as keys. 
+
+            # TODO: Handle each ViewSet function with separate schemas, treating each function
+            # `retrieve`, `list` etc. as one FBV each
+            
+            if hasattr(view, 'actions'):
+                for k in view.actions.keys():
+                    try:
+                        http_method = HttpMethod(k)
+                    except ValueError:
+                        continue
+    
+                    setattr(
+                        path, 
+                        http_method, 
+                        DjaggerEndPoint._from(view, http_method)
+                    )
+
             # For FBVs, check for existence of http methods from the `djagger_http_methods` attribute
             # set by the @schema decorator
 
@@ -357,10 +431,24 @@ class DjaggerPath(BaseModel):
 
 class DjaggerDoc(BaseModel):
     
-    """OpenAPI base document"""
+    """
+    OpenAPI base document
+
+    Args:
+        swagger (str) : Swagger version number.
+        info (DjaggerInfo) : ``DjaggerInfo`` object.
+        host (str): Hostname for APIs.
+        basePath (str): Base path of URL e.g., ``/V1``.
+        tags (List[DjaggerTag]) : List of ``DjaggerTag`` objects.
+        schemes (List[str]) : List of URL schemes. Defaults to ``['http', 'https']``.
+        paths (Dict[str, DjaggerPath]): Dictionary containing route as the key and ``DjaggerPath`` object as its value.
+        securityDefinitions (Dict): WIP
+        definitions (Dict[str, dict]): Dictionary containing OpenAPI definitions.
+        x_tag_groups (List[DjaggerTagGroup]) : List of ``DjaggerTagGroup`` tag groupings if any.
+    """ 
 
     swagger : str = "2.0"
-    info : DjaggerInfo = DjaggerInfo()
+    info : DjaggerInfo
     host : str = ""
     basePath : str = ""
     tags : List[DjaggerTag] = []
@@ -368,16 +456,11 @@ class DjaggerDoc(BaseModel):
     paths : Dict[str, DjaggerPath] = {}
     securityDefinitions : dict = {} # Incomplete
     definitions : Dict[str, dict] = {}
+    x_tag_groups : Optional[List[DjaggerTagGroup]] = Field(alias="x-tagGroups")
 
-    @staticmethod
-    def clean_route(route : str) -> str:
-        """ Converts a django path route string format into an openAPI route format.
-        Example:
-            Django format: '/list/<int:pk>' 
-                to
-            OpenAPI format: '/list/{pk}'
-        """
-        return re.sub(r'<[a-zA-Z0-9\-\_]*:([a-zA-Z0-9\-\_]*)>', r'{\1}', route)
+    class Config:
+        allow_population_by_field_name = True
+
 
 
     @classmethod
@@ -397,7 +480,8 @@ class DjaggerDoc(BaseModel):
         contact_email = "",
         contact_url = "",
         license_name = "",
-        license_url = ""
+        license_url = "",
+        x_tag_groups : List[DjaggerTagGroup]= []
     ) -> dict :
         """ Inspects URLPatterns in given list of apps to generate the openAPI json object for the Django project.
         Returns the JSON string object for the resulting OAS document.
@@ -406,30 +490,19 @@ class DjaggerDoc(BaseModel):
         url_patterns = get_url_patterns(app_names)
         paths : Dict[str, DjaggerPath] = {}
 
-        for url_pattern in url_patterns:
-            # Either `path()` or `re_path()` are valid
-            # `re_path()` does not have _route attribute
-            if hasattr(url_pattern.pattern, '_route'):
-                route = "/" + url_pattern.pattern._route
-            elif hasattr(url_pattern.pattern, 'regex'):
-                route = "/" + url_pattern.pattern.regex.pattern.replace("^", "").replace("$", "")
-                warnings.warn("Warning: re_path is not recommended. Please use path() for url patterns if possible.")
-            else:
-                raise AttributeError("urlpattern does not contain _route or regex. Make sure you are using path() in your url patterns")
-
-            route = DjaggerDoc.clean_route(route)
+        for route, url_pattern in url_patterns:
 
             try:
                 view = url_pattern.callback.view_class # Class-based View
             except AttributeError:
-                view = url_pattern.callback # Function-based View
+                view = url_pattern.callback # Function-based View / ViewSet 
             
             if hasattr(view, DjaggerAPIAttributes.DJAGGER_EXCLUDE.value):
                 # Exclude generating docs for views with `djagger_exclude=True`
                 if view.djagger_exclude:
                     continue
             
-            paths[route] = DjaggerPath.create(view)
+            paths["/" + route] = DjaggerPath.create(view)
 
         # Create tag objects as provided
         # Note that if tags supplied is empty, they will still be generated when
@@ -442,15 +515,15 @@ class DjaggerDoc(BaseModel):
             version=version,
             title=title,
             termsOfService=terms_of_service,
-            contact={
-                "name":contact_name,
-                "email":contact_email,
-                "url":contact_url
-            },
-            license={
-                "name":license_name,
-                "url":license_url
-            },
+            contact=DjaggerContact(
+                name=contact_name,
+                email=contact_email,
+                url=contact_url
+            ),
+            license=DjaggerLicense(
+                name=license_name,
+                url=license_url
+            ),
         )
         document = cls(
             swagger=swagger,
@@ -460,6 +533,7 @@ class DjaggerDoc(BaseModel):
             schemes=schemes,
             tags=tags,
             paths=paths,
+            x_tag_groups=x_tag_groups,
         )
 
         return document.dict(by_alias=True, exclude_none=True)

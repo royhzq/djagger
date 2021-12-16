@@ -4,6 +4,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+
+## [1.0.4] - 2021-12-XX
+### Added
+- Support for redoc-specific fields for `x-logo` and `x-tagGroups` and the corresponding Djagger objects `DjaggerLogo` and `DjaggerTagGroup`.
+- Support for using DRF Serializers directly in setting OpenAPI parameters and responses. Converts to pydantic models under the hood.
+- Added `SerializerConverter` class for converting a DRF Serializer instance into a `pydantic.ModelMetaClass` object.
+
+### Changed
+- Updated `get_url_patterns()` to fix bug where url pattern route retrieved does not have prefixed path
+
 ## [1.0.3] - 2021-12-11
 
 ### Changed

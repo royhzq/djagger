@@ -1,16 +1,26 @@
+"""
+Decorators
+==========
+"""
 from typing import List
 from .enums import HttpMethod, DjaggerViewAttributeList, DJAGGER_HTTP_METHODS
 
 def schema(methods : List[str], **attrs):
     """ Decorator for function based views to set Djagger attributes into the view.
     A list of http method strings are needed to inform Djagger which endpoint schemas to create
-    I.e. GET POST PUT PATCH DELETE
+    I.e. ``GET`` ``POST`` ``PUT`` ``PATCH`` ``DELETE``
 
-    Example:
-        @schema(methods=["GET", "POST"], summary="My FBV Endpoint", get_response_schema=MyFBVResponseSchema)
+    Example::
+    
+        @schema(
+            methods=["GET", "POST"], 
+            summary="My FBV Endpoint", 
+            get_response_schema=MyFBVResponseSchema
+        )
         def my_fb_view(request):
             # Your code logic
             return JsonResponse({"foo":"bar"})
+    
     """
     def decorator(f):
 

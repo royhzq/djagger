@@ -1,3 +1,7 @@
+"""
+Enums
+=====
+"""
 from typing import Union, List
 from enum import Enum
 from .utils import djagger_method_enum_factory

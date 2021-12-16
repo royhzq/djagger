@@ -21,13 +21,14 @@ def open_api_json(request : HttpRequest):
         license_name = getattr(settings, 'DJAGGER_LICENSE_NAME', ""),
         license_url = getattr(settings, 'DJAGGER_LICENSE_URL', ""),
         basePath = getattr(settings, 'DJAGGER_BASEPATH', ""),
-        tags = getattr(settings, 'DJAGGER_TAGS', ""),
+        tags = getattr(settings, 'DJAGGER_TAGS', []),
         version = getattr(settings, 'DJAGGER_VERSION', "1.0.5"),
         title = getattr(settings, 'DJAGGER_TITLE', "Djagger OpenAPI Documentation"),
         schemes = getattr(settings, 'DJAGGER_SCHEMES', ['http','https']),
         swagger = getattr(settings, 'DJAGGER_SWAGGER', "2.0"),
         host = getattr(settings, 'DJAGGER_HOST', "example.org"),
-        terms_of_service = getattr(settings, 'DJAGGER_TERMS_OF_SERVICE', "")
+        terms_of_service = getattr(settings, 'DJAGGER_TERMS_OF_SERVICE', ""),
+        x_tag_groups = getattr(settings, 'DJAGGER_X_TAG_GROUPS', [])
     )
 
     response = JsonResponse(document)
