@@ -15,6 +15,14 @@ class DjaggerAPIAttributes(str, Enum):
     API-level attributes listed here that are initialized in the view will apply to all http method endpoints
     withinin the view, unless an endpoint-specific attribute exists which will override the api-level attribute.
     """ 
+
+    PATH_PARAMS = 'path_params'
+    QUERY_PARAMS = 'query_params'
+    HEADER_PARAMS = 'header_params'
+    COOKIE_PARAMS = 'cookie_params'
+    BODY_PARAMS = 'body_params'
+    RESPONSE_SCHEMA = 'response_schema'
+
     SUMMARY = 'summary'
     TAGS = 'tags'
     DESCRIPTION = 'description'

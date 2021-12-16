@@ -12,7 +12,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added `SerializerConverter` class for converting a DRF Serializer instance into a `pydantic.ModelMetaClass` object.
 
 ### Changed
-- Updated `get_url_patterns()` to fix bug where url pattern route retrieved does not have prefixed path
+- Updated `get_url_patterns()` to fix bug where url pattern route retrieved does not have prefixed path.
+- Restructured tests folder with subfolders for Djagger schema tests.
 
 ## [1.0.3] - 2021-12-11
 

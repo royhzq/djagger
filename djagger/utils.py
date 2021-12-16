@@ -42,6 +42,7 @@ def djagger_method_enum_factory(name: str, method : str) -> Enum:
         "TAGS" : "_tags",
         "CONSUMES" : "_consumes",
         "PRODUCES" : "_produces",
+        "DJAGGER_EXCLUDE": "_djagger_exclude"
     }
     prefixed_attrs = { k: method + v for k, v in attrs.items() } 
 

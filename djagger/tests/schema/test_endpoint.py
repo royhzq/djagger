@@ -1,72 +1,11 @@
 from pydantic import BaseModel
 from rest_framework import serializers, fields
 from typing import List
-from ..enums import HttpMethod
+from ...enums import HttpMethod
 
-from ..schema import (
-    DjaggerInfo, 
-    DjaggerLogo, 
-    DjaggerExternalDocs, 
-    DjaggerTag,
-    DjaggerContact, 
-    DjaggerLicense,
+from ...schema import (
     DjaggerEndPoint
 )
-
-def test_djagger_logo():
-    data = DjaggerLogo(
-        url="https://example.org/image.png", 
-        altText="Test logo image"
-    ).dict()
-
-    assert data
-
-def test_djagger_external_docs():
-    data = DjaggerExternalDocs(
-        description="test description",
-        url="URL of description"
-    ).dict()
-    assert data
-
-
-def test_djagger_tag():
-    data = DjaggerTag(
-        name="Tag name",
-        description = "description",
-        externalDocs = DjaggerExternalDocs(
-            description="test description",
-            url="URL description"
-        )
-    ).dict()
-    assert data
-
-def test_djagger_contact():
-    data = DjaggerContact(
-        name="Test Name",
-        url="Test URL",
-        email="example@example.org"
-    ).dict()
-    assert data
-
-def test_djagger_license():
-    data = DjaggerLicense(
-        name="test license name",
-        url="license Url"
-    ).dict()
-    assert data
-
-def test_djagger_info():
-
-    data = DjaggerInfo(
-        description = "Test Info Description",
-        version = "2.0",
-        title = "Test Djagger Info",
-        termsOfService = "Reference to ToS",
-        contact = DjaggerContact(),
-        x_logo=DjaggerLogo(),
-    ).dict(by_alias=True)
-    assert data
-    assert data.get('x-logo')
 
 
 def test_extract_parameters():
@@ -94,6 +33,42 @@ def test_extract_parameters_from_serializer():
     endpoint = DjaggerEndPoint()
     endpoint._extract_parameters(view=View, http_method=HttpMethod('get'))
     assert len(endpoint.parameters) == 2 # value1 and value2 attr
+
+
+def test_extract_paramaters_fallback():
+    
+    # Fallback to api-level param attribute if 
+    # method-level param attribute does not exist
+
+    class BodyParams(BaseModel):
+        """BodyParams"""
+        field_1 : str
+        field_2 : int
+
+    class PostBodyParams(BaseModel):
+        """PostBodyParams"""
+        field_3 : str
+        filed_4 : int
+
+    class View:
+        body_params = BodyParams
+        post_body_params = PostBodyParams
+
+    class View2:
+        body_params = BodyParams
+
+    # View post body params should be utilizing `PostBodyParams`
+    endpoint = DjaggerEndPoint()
+    endpoint._extract_parameters(view=View, http_method=HttpMethod('post'))
+    assert len(endpoint.parameters) == 1
+    assert endpoint.parameters[0].description == PostBodyParams.__doc__
+
+    # View2 post body params should be utilizing `BodyParams`
+    endpoint = DjaggerEndPoint()
+    endpoint._extract_parameters(view=View2, http_method=HttpMethod('post'))
+    assert len(endpoint.parameters) == 1
+    assert endpoint.parameters[0].description == BodyParams.__doc__
+    
 
 def test_extract_responses():
 
@@ -158,3 +133,38 @@ def test_extract_multiple_responses_from_serializer():
     endpoint = DjaggerEndPoint()
     endpoint._extract_responses(view=View, http_method=HttpMethod('get'))
     assert len(endpoint.responses) == 2
+
+def test_extract_responses_fallback():
+    
+    # Fallback to api-level response schema attribute if 
+    # method-level response schema attribute does not exist
+
+    class SchemaResponse(BaseModel):
+        """SchemaResponse"""
+        field_1 : str
+        field_2 : int
+
+    class PutSchemaResponse(BaseModel):
+        """PutSchemaResponse"""
+        field_3 : str
+        filed_4 : int
+
+    class View:
+        response_schema = SchemaResponse
+        put_response_schema = PutSchemaResponse
+
+    class View2:
+        response_schema = SchemaResponse
+
+    # View put response  should be utilizing `PutSchemaResponse`
+    endpoint = DjaggerEndPoint()
+    endpoint._extract_responses(view=View, http_method=HttpMethod('put'))
+    assert len(endpoint.responses) == 1
+    assert endpoint.responses['200'].description == PutSchemaResponse.__doc__
+
+    # View2 put response  should be utilizing `SchemaResponse`
+    endpoint = DjaggerEndPoint()
+    endpoint._extract_responses(view=View2, http_method=HttpMethod('put'))
+    assert len(endpoint.responses) == 1
+    assert endpoint.responses['200'].description == SchemaResponse.__doc__
+    
