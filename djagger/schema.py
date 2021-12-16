@@ -8,9 +8,11 @@ The core module of Djagger project
 
 from pydantic import BaseModel, Field, ValidationError, validator
 from pydantic.main import ModelMetaclass # Abstract classes derived from BaseModel
+from rest_framework import serializers
 from typing import Optional, List, Dict, Union, Type
 from enum import Enum
 from .utils import base_model_set_examples, get_url_patterns
+from .serializers import SerializerConverter
 from .enums import (
     HttpMethod, 
     ParameterLocation, 
@@ -157,6 +159,10 @@ class DjaggerResponse(BaseModel):
         def _from(cls, model : ModelMetaclass) -> 'DjaggerResponse':
             """ Instantiate DjaggerResponse from a pydantic type model
             """
+
+            if not isinstance(model, ModelMetaclass):
+                raise ValueError("Model in response schema must be pydantic.main.ModelMetaclass type")
+
             base_model_set_examples(model)
             return cls(
                 description = model.__doc__ if model.__doc__ else "",
@@ -302,6 +308,10 @@ class DjaggerEndPoint(BaseModel):
                 continue
             request_schema = getattr(view, attr.value)
 
+            # Converting serializers to pydantic models
+            if isinstance(request_schema, serializers.SerializerMetaclass):
+                request_schema = SerializerConverter(s=request_schema()).to_model()
+
             self.parameters += DjaggerParameter.to_parameters(request_schema, attr)
 
         return
@@ -322,13 +332,20 @@ class DjaggerEndPoint(BaseModel):
             responses = { 
                 '200': DjaggerResponse._from(response_schema)
             }
+        # When attribute is a Serializer - assume 200 response only
+        elif isinstance(response_schema, serializers.SerializerMetaclass):
+            responses = {
+                '200': DjaggerResponse._from(SerializerConverter(s=response_schema()).to_model())
+            }
+        # When attribute is a dict of responses, prepare dict of DjaggerResponse values
         elif isinstance(response_schema, Dict):
-            # When attribute is a dict of responses, prepare dict of DjaggerResponse values
             for status_code, model in response_schema.items():
                 if not isinstance(status_code, str):
                     raise ValueError("key in response schema dict needs to be string")
-                if not isinstance(model, ModelMetaclass):
-                    raise ValueError("Model in response schema must be pydantic.main.ModelMetaclass type")
+
+                # Converting serializers to pydantic models
+                if isinstance(model, serializers.SerializerMetaclass):
+                    model = SerializerConverter(s=model()).to_model()
 
                 responses[status_code] = DjaggerResponse._from(model)
         

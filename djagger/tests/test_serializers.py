@@ -2,7 +2,7 @@
 """
 
 from rest_framework import fields, serializers
-from ..utils import schema_from_serializer
+from ..serializers import SerializerConverter
 
 def test_all_primiitive_fields():
 
@@ -38,7 +38,7 @@ def test_all_primiitive_fields():
         jsonfield = fields.JSONField()
 
 
-    model = schema_from_serializer(TestSerializer())
+    model = SerializerConverter(s=TestSerializer()).to_model()
 
     assert model.schema()
 
@@ -51,7 +51,8 @@ def test_nested_serializers():
     class TestSerializer(serializers.Serializer):
         nested = Nested()
 
-    model = schema_from_serializer(TestSerializer())
+    model = SerializerConverter(s=TestSerializer()).to_model()
+
     assert model.schema()
 
 def test_nested_serializers_many():
@@ -62,7 +63,8 @@ def test_nested_serializers_many():
     class TestSerializer(serializers.Serializer):
         nested = Nested(many=True)
 
-    model = schema_from_serializer(TestSerializer())
+    model = SerializerConverter(s=TestSerializer()).to_model()
+
     assert model.schema()
     
 def test_nested_list_fields():
@@ -80,6 +82,21 @@ def test_nested_list_fields():
     class TestSerializer(serializers.Serializer):
         listfield = fields.ListField(child=L0(), max_length=12)
 
-    model = schema_from_serializer(TestSerializer())
+    model = SerializerConverter(s=TestSerializer()).to_model()
     assert model.schema()
     
+def test_list_serializer():
+
+    class TestSerializer(serializers.Serializer):
+        pk = fields.IntegerField()        
+
+    model = SerializerConverter(s=TestSerializer(many=True), max_length=4).to_model()
+    assert model.schema()
+
+    # Directly from ListSerializer
+    model = SerializerConverter(
+        s=serializers.ListSerializer(
+            child=TestSerializer()
+        )
+    ).to_model()
+    assert model.schema()
