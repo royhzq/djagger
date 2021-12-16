@@ -8,10 +8,11 @@ The core module of Djagger project
 
 from pydantic import BaseModel, Field, ValidationError, validator
 from pydantic.main import ModelMetaclass # Abstract classes derived from BaseModel
+import pydantic.schema
 from rest_framework import serializers
 from typing import Optional, List, Dict, Union, Type
 from enum import Enum
-from .utils import base_model_set_examples, get_url_patterns
+from .utils import base_model_set_examples, get_url_patterns, extract_unique_schema
 from .serializers import SerializerConverter
 from .enums import (
     HttpMethod, 
@@ -30,6 +31,7 @@ from collections import Counter
 import warnings
 import inspect
 import re
+import uuid
 
 class DjaggerLogo(BaseModel):
     """ Logo image for display on redoc documents. 
@@ -98,6 +100,7 @@ class DjaggerParameter(BaseModel):
     class Config:
         allow_population_by_field_name = True
 
+
     @classmethod
     def to_parameters(cls, schema : ModelMetaclass, attr : DjaggerMethodAttributes) -> List['DjaggerParameter']:
         """ Converts the fields of a pydantic model to list of DjaggerParameter objects for use in generating request parameters.
@@ -129,14 +132,15 @@ class DjaggerParameter(BaseModel):
                     in_="body",
                     required=True,
                     type_=None,
-                    schema_=schema.schema()
+                    schema_=extract_unique_schema(schema),
+                    model=schema
                 )
             ]
             return params
         
         # Handle other parameters - path / query / form / headers/ cookie 
         # with each field as a separate parameter in the list of parameters
-        properties = schema.schema().get('properties',{})
+        properties = extract_unique_schema(schema).get('properties',{})
         for name, props in properties.items():
             param = cls(
                 name=name,
@@ -166,7 +170,8 @@ class DjaggerResponse(BaseModel):
             base_model_set_examples(model)
             return cls(
                 description = model.__doc__ if model.__doc__ else "",
-                schema=model.schema()
+                schema=extract_unique_schema(model),
+                model=model
             )
 
         class Config:
@@ -200,7 +205,7 @@ class DjaggerEndPoint(BaseModel):
                 raise TypeError('consumes attribute must be a list')
             self.consumes = consumes
             return
-        except AttributeError:
+        except AttributeError as e:
             pass
 
         # 2. Get `consumes` at the API level
@@ -229,7 +234,7 @@ class DjaggerEndPoint(BaseModel):
                 raise TypeError('produces attribute must be a list')
             self.produces = produces
             return
-        except AttributeError:
+        except AttributeError as e:
             pass
 
         # 2. Get `produces` at the API level
@@ -415,6 +420,8 @@ class DjaggerEndPoint(BaseModel):
                     model = SerializerConverter(s=model()).to_model()
 
                 responses[status_code] = DjaggerResponse._from(model)
+
+
         
         self.responses = responses
         
@@ -440,6 +447,8 @@ class DjaggerEndPoint(BaseModel):
 
         endpoint._extract_tags(view, http_method)
         endpoint._extract_summary(view, http_method)
+        endpoint._extract_consumes(view, http_method)
+        endpoint._extract_produces(view, http_method)
         endpoint._extract_description(view, http_method)
         endpoint._extract_parameters(view, http_method)
         endpoint._extract_responses(view, http_method)
@@ -535,6 +544,31 @@ class DjaggerDoc(BaseModel):
         allow_population_by_field_name = True
 
 
+    def compile_definitions(self):
+        """ Build up definitions at the base document by compiling all pydantic models in parameters and responses . 
+        Also deletes individual definitions field for the schemas in parameters and responses.
+        """
+        definitions = {}
+        for path in self.paths.values():
+            for http_method in ['get', 'post', 'put', 'patch', 'delete']:
+                endpoint = getattr(path, http_method)
+                if not endpoint:
+                    continue
+
+                for response in endpoint.responses.values():
+                    if hasattr(response ,"schema_"):
+                        if isinstance(response.schema_, Dict):
+                            if response.schema_.get('definitions'):
+                                definitions.update(response.schema_.pop('definitions'))
+
+                for parameter in endpoint.parameters:
+                    if hasattr(parameter ,"schema_"):
+                        if isinstance(parameter.schema_, Dict):
+                            if parameter.schema_.get('definitions'):
+                                definitions.update(parameter.schema_.pop('definitions'))
+
+        self.definitions = definitions
+        return 
 
     @classmethod
     def generate_openapi(
@@ -608,6 +642,7 @@ class DjaggerDoc(BaseModel):
             paths=paths,
             x_tag_groups=x_tag_groups,
         )
+        document.compile_definitions()
 
         return document.dict(by_alias=True, exclude_none=True)
 

@@ -7,7 +7,6 @@ from ...schema import (
     DjaggerEndPoint
 )
 
-
 def test_extract_parameters():
 
     class GetParams(BaseModel):
