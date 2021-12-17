@@ -100,3 +100,9 @@ def test_list_serializer():
         )
     ).to_model()
     assert model.schema()
+
+
+from ..openapi import Document
+
+def test_document():
+    Document.generate()

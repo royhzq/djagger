@@ -38,6 +38,8 @@ DjaggerPostAttributes = djagger_method_enum_factory("DjaggerPostAttributes", "po
 DjaggerPatchAttributes = djagger_method_enum_factory("DjaggerPatchAttributes", "patch")
 DjaggerDeleteAttributes = djagger_method_enum_factory("DjaggerDeleteAttributes", "delete")
 DjaggerPutAttributes = djagger_method_enum_factory("DjaggerPutAttributes", "put")
+DjaggerOptionsAttributes = djagger_method_enum_factory("DjaggerOptionsAttributes", "options")
+DjaggerHeadAttributes = djagger_method_enum_factory("DjaggerHeadAttributes", "head")
 
 ###
 
@@ -46,7 +48,9 @@ DjaggerMethodAttributes = Union[
     DjaggerPostAttributes, 
     DjaggerPatchAttributes, 
     DjaggerPutAttributes, 
-    DjaggerDeleteAttributes
+    DjaggerDeleteAttributes,
+    DjaggerHeadAttributes,
+    DjaggerOptionsAttributes
 ]
 
 # List of all allowable djagger attribute names for a given view
@@ -57,6 +61,8 @@ DjaggerViewAttributeList : List[str] = [
     *[ member.value for member in list(DjaggerPatchAttributes.__members__.values())],
     *[ member.value for member in list(DjaggerDeleteAttributes.__members__.values())],
     *[ member.value for member in list(DjaggerPutAttributes.__members__.values())],
+    *[ member.value for member in list(DjaggerOptionsAttributes.__members__.values())],
+    *[ member.value for member in list(DjaggerHeadAttributes.__members__.values())],
 ]
 
 class HttpMethod(str, Enum):
@@ -65,6 +71,8 @@ class HttpMethod(str, Enum):
     PATCH = 'patch'
     DELETE = 'delete'
     PUT = 'put'
+    OPTIONS = 'options'
+    HEAD = 'head'
 
     def to_djagger_attribute(self) -> 'DjaggerMethodAttributes':
         """ Returns the corresponding DjaggerMethodAttribute depending on
@@ -80,6 +88,10 @@ class HttpMethod(str, Enum):
             return DjaggerDeleteAttributes
         elif self == self.PUT:
             return DjaggerPutAttributes
+        elif self == self.OPTIONS:
+            return DjaggerOptionsAttributes
+        elif self == self.HEAD:
+            return DjaggerHeadAttributes
         
 class ParameterLocation(str, Enum):
     """ OpenAPI parameter locations. The values of `in` for parameter object.

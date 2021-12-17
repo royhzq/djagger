@@ -3,9 +3,8 @@ Swagger 2.0 Schema Objects
 ====================================
 """
 
-from pydantic import BaseModel, Field, ValidationError, validator
-from pydantic.main import ModelMetaclass # Abstract classes derived from BaseModel
-import pydantic.schema
+from pydantic import BaseModel, Field
+from pydantic.main import ModelMetaclass
 from rest_framework import serializers
 from typing import Optional, List, Dict, Union, Type
 from enum import Enum
@@ -16,11 +15,6 @@ from .enums import (
     ParameterLocation, 
     DjaggerAPIAttributes,
     DjaggerMethodAttributes,
-    DjaggerGetAttributes, 
-    DjaggerPostAttributes, 
-    DjaggerPatchAttributes, 
-    DjaggerPutAttributes, 
-    DjaggerDeleteAttributes,
     DJAGGER_HTTP_METHODS,
 )
 
@@ -458,6 +452,8 @@ class Path(BaseModel):
     put : Optional[EndPoint]
     patch : Optional[EndPoint]
     delete : Optional[EndPoint]
+    options : Optional[EndPoint]
+    head : Optional[EndPoint]
 
     @classmethod
     def create(cls, view : Type) -> 'Path':
