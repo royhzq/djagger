@@ -11,8 +11,6 @@ from ...openapi import (
     Document
 )
 
-
-
 def test_document():
 
     document = Document.generate(
@@ -77,7 +75,10 @@ def test_path_create():
     class View():
 
         post_body_params = BodyParams
-        response_schema = ResponseSchema
+        response_schema = {
+            "200":ResponseSchema,
+            "400":ResponseSchema
+        }
 
         def post(self):
             return None

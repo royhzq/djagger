@@ -3,8 +3,9 @@ OpenAPI 3.0 Schema Objects
 ====================================
 """
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ValidationError
 from pydantic.main import ModelMetaclass
+from rest_framework import serializers
 from typing import Optional, List, Dict, Union, Type, Any
 from .utils import base_model_set_examples, get_url_patterns
 
@@ -224,6 +225,29 @@ class Response(BaseModel):
     headers : Optional[Dict[str, Union[Header, Reference]]]
     content : Optional[Dict[str, MediaType]]
     # links : Optional[Dict] # Not supported yet
+    @classmethod
+    def _from(cls, model : ModelMetaclass) -> 'Response':
+        # By default if a pydantic model is passed, the only content type is application/json for MediaType
+        # to allow multiple content in a Response object, a python dict needs to be passed manually.
+        # via Response.parse_obj(my_dict)
+        response = cls(
+            description=model.__doc__,
+            content={
+                "application/json":MediaType._from(model)
+            }
+        )
+
+        # Extract headers dict in the Response model Config
+        headers = getattr(model.Config, 'headers', {})
+        if headers and isinstance(headers, Dict):
+            response.headers = {}
+            for k, v in headers:
+                try:
+                    response.headers[k] = Header.parse_obj(v)
+                except ValidationError as e:
+                    warnings.warn(f"Validation error in header: {str(e)}")
+
+        return response
 
 class Operation(BaseModel):
     
@@ -409,8 +433,52 @@ class Operation(BaseModel):
 
 
     def _extract_responses(self, view : Type, http_method: HttpMethod):
-        ...
-        return
+        """ Helper to initialize `responses` from a view class and returns responses dict for EndPoint
+        """
+        if not isinstance(http_method, HttpMethod):
+            raise TypeError("http_method is not a valid HttpMethod type")
+
+        responses = {}
+
+        schema_attr : DjaggerMethodAttributes = http_method.to_djagger_attribute().RESPONSE_SCHEMA
+        response_schema = getattr(view, schema_attr.value, None)
+
+        if response_schema == None:
+            # Look for the api-level response schema as fallback
+            # E.g. if "post_response_schema" not found, look for "response_schema" attr instead
+            response_schema = getattr(view, DjaggerAPIAttributes.RESPONSE_SCHEMA.value, None)
+
+        # When attribute is a pydantic model - assume 200 response only
+        if isinstance(response_schema, ModelMetaclass):
+            responses = { 
+                '200': Response._from(response_schema)
+            }
+
+        # When attribute is a Serializer - assume 200 response only
+        elif isinstance(response_schema, serializers.SerializerMetaclass):
+            responses = {
+                '200': Response._from(SerializerConverter(s=response_schema()).to_model())
+            }
+        # When attribute is a dict of responses, prepare dict of Response values
+        elif isinstance(response_schema, Dict):
+
+            for status_code, model in response_schema.items():
+                if not isinstance(status_code, str):
+                    raise ValueError("key in response schema dict needs to be string")
+
+                if isinstance(model, serializers.SerializerMetaclass):
+                    model = SerializerConverter(s=model()).to_model()
+                    responses[status_code] = Response._from(model)
+
+                elif isinstance(model, Dict):
+                    # For manual parsing if a Dict is passed instead of the expected ModelMetaclass or Serializer
+                    responses[status_code] = Response.parse_obj(model)
+                
+                else:
+                    responses[status_code] = Response._from(model)
+        
+        self.responses = responses
+        
 
     def _extract_security(self, view : Type, http_method: HttpMethod):
         ...
@@ -479,18 +547,15 @@ class Path(BaseModel):
         
         if inspect.isclass(view):
             # For CBV or DRF API, check for methods by looking for get(), post(), patch(), put(), delete() methods
-            print("is class")
             for http_method in HttpMethod.__members__.values():
                 if hasattr(view, http_method):
-                    print(" has method", http_method)
                     if callable(getattr(view, http_method)):
-                        print("make operation")
                         operation = Operation._from(view, http_method)
                         if not operation:
                             continue
                         # if not operation.responses:
                         #     warnings.warn(f"{view.__name__} does not have a response schema, will not be documented.")
-                            continue
+                        #     continue
 
                         setattr(path, http_method, operation)
 
