@@ -1,10 +1,7 @@
 """
-Djagger Schema Objects
+Swagger 2.0 Schema Objects
 ====================================
-The core module of Djagger project
 """
-
-# Types for OpenAPI swagger document
 
 from pydantic import BaseModel, Field, ValidationError, validator
 from pydantic.main import ModelMetaclass # Abstract classes derived from BaseModel
@@ -27,7 +24,6 @@ from .enums import (
     DJAGGER_HTTP_METHODS,
 )
 
-from collections import Counter
 import warnings
 import inspect
 import re
