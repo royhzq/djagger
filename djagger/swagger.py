@@ -60,13 +60,13 @@ class Info(BaseModel):
 
     """OpenAPI document information"""
 
-    description : str = Field(" OpenAPI Document Description", description=" OpenAPI descripition")
-    version : str = "1.0.5"
     title : str = "Djagger OpenAPI Documentation"
+    description : str = Field(" OpenAPI Document Description", description=" OpenAPI descripition")
     termsOfService : str = Field("",description="Reference to any TOS")
     contact : Contact = Field({"email":"example@example.com"}, description="Dict of contact information")
-    x_logo : Optional[Logo] = Field(alias="x-logo")
     license : Optional[License]
+    version : str = "1.0.5"
+    x_logo : Optional[Logo] = Field(alias="x-logo")
 
     class Config:
         allow_population_by_field_name = True
