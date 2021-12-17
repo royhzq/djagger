@@ -18,6 +18,7 @@ from .enums import (
 
 import uuid
 import inspect
+import warnings
 
 class Logo(BaseModel):
     """ Logo image for display on redoc documents. 
@@ -166,7 +167,34 @@ class MediaType(BaseModel):
 
     class Config:
         allow_population_by_field_name = True
+    
+    @classmethod
+    def _from(cls, model : ModelMetaclass, component : str = "schemas") -> 'MediaType':
+        """Generates an instance of MediaType from a pydantic model"""
+        
+        media = cls()
 
+        base_model_set_examples(model)
+        media.schema_ = Components.extract_component_schema(model, component)
+        
+        # Generate example
+        if hasattr(model, 'example'):
+            if callable(model.example):
+                media.example = model.example()
+
+        # TODO: Handle multiple examples for ``examples`` field
+        
+        # Look for ``encoding`` in model Config and instantiate it 
+        encoding = getattr(model.Config, 'encoding', {})
+
+        if not isinstance(encoding, Dict):
+            raise TypeError('encoding in model Config needs to be a Dict')
+
+        if encoding:
+            # TODO: validation for internals of ``encoding``
+            media.encoding = encoding
+
+        return media
 
 class Parameter(BaseModel):
     name : str
@@ -187,7 +215,7 @@ class Parameter(BaseModel):
         allow_population_by_field_name = True
 
 class RequestBody(BaseModel):
-    description : str = ""
+    description : Optional[str]
     content : Dict[str, MediaType] = {}
     required : bool = False
 
@@ -212,68 +240,189 @@ class Operation(BaseModel):
     security : Optional[SecurityRequirement]
     servers : Optional[List[Server]]
 
-    @classmethod
     def _extract_operationId(self, view : Type, http_method: HttpMethod):
         ...
         return
 
-    @classmethod
     def _extract_externalDocs(self, view : Type, http_method: HttpMethod):
         ...
         return
 
-    @classmethod
     def _extract_parameters(self, view : Type, http_method: HttpMethod):
         ...
         return
 
-    @classmethod
     def _extract_tags(self, view : Type, http_method: HttpMethod):
-        ...
+        """ `tags` attribute is initialized on the end point in the following priority:
+        1. Look for tags set at the http method level e.g., `get_tags`, `post_tags` attribute
+        2. If not, look for tags set at the api level e.g. `tags` attribute (which would apply to all http methods unless 1. exists)
+        3. If not, set the tags to be default as the app module name in which the api resides in.
+        """
+
+        # 1. Get tags specific to endpoint http method
+        djagger_method_attributes = http_method.to_djagger_attribute()
+        try:
+            tags = getattr(view, djagger_method_attributes.TAGS.value)
+            if not isinstance(tags, List):
+                raise TypeError('tags attribute must be a list of strings')
+            self.tags = tags
+            return
+
+        except AttributeError:
+            pass
+
+        # 2. Get tags at the API level
+        try:
+            tags = getattr(view, DjaggerAPIAttributes.TAGS.value)
+            if not isinstance(tags, List):
+                raise TypeError('tags attribute must be a list of strings')
+            self.tags = tags
+            return
+        except AttributeError:
+            pass
+
+        # 3. Set tags as the app module name of the API
+        tags = [view.__module__.split(".")[0]]
+
+        self.tags = tags
         return
 
-    @classmethod
+
     def _extract_summary(self, view : Type, http_method: HttpMethod):
-        ...
+        """`summary` attribute is initialized on the end point in the following priority:
+        1. Look for `summary` the http method level e.g., `get_summary`, `post_summary` attribute
+        2. If not, look for `summary` set at the api level e.g. `summary` attribute (which would apply to all http methods unless 1. exists)
+        3. If not, set `summary` to be the API class name.
+        """
+
+        # 1. Get summary specific to endpoint http method
+        djagger_method_attributes = http_method.to_djagger_attribute()
+        try:
+            summary = getattr(view, djagger_method_attributes.SUMMARY.value)
+            if not isinstance(summary, str):
+                raise TypeError('summary attribute must be string')
+            self.summary = summary
+            return
+        except AttributeError:
+            pass
+
+        # 2. Get summary at the API level
+        try:
+            summary = getattr(view, DjaggerAPIAttributes.SUMMARY.value)
+            if not isinstance(summary, str):
+                raise TypeError('summary attribute must be string')
+            self.summary = summary
+            return
+        except AttributeError:
+            pass
+
+        # 3. Get summary as the API Name
+        self.summary = view.__name__
         return
 
-    @classmethod
     def _extract_description(self, view : Type, http_method: HttpMethod):
-        ...
+        """`description` attribute is initialized on the end point in the following priority:
+        1. Look for `description` the http method level e.g., `get_description`, `post_description` attribute
+        2. If not, look for `description` set at the api level e.g. `description` attribute (which would apply to all http methods unless 1. exists)
+        3. If not, set `description` to be the docstrings in the view.
+        """
+
+        # 1. Get description specific to endpoint http method
+        djagger_method_attributes = http_method.to_djagger_attribute()
+        try:
+            description = getattr(view, djagger_method_attributes.DESCRIPTION.value)
+            if not isinstance(description, str):
+                raise TypeError('description attribute must be string')
+            self.description = description
+            return
+        except AttributeError:
+            pass
+
+        # 2. Get description at the API level
+        try:
+            description = getattr(view, DjaggerAPIAttributes.DESCRIPTION.value)
+            if not isinstance(description, str):
+                raise TypeError('description attribute must be string')
+            self.description = description
+            return
+        except AttributeError:
+            pass
+
+        # 3. Get description as the API docstring
+        self.description = view.__doc__ if view.__doc__ else ""
         return
 
-    @classmethod
     def _extract_parameters(self, view : Type, http_method: HttpMethod):
         ...
         return
 
-    @classmethod
     def _extract_request_body(self, view : Type, http_method: HttpMethod):
-        ...
-        return
+        """ Extracts ``requestBody`` from the ``<http_method>_BODY_PARAMS`` attribute from the view.
+        ``<http_method>_BODY_PARAMS`` value can be of the following types:
+            - ``ModelMetaclass``
+            - ``Dict[str, Union[ModelMetaclass, Dict]``
+        """
+        djagger_method_attributes = http_method.to_djagger_attribute()
+
+        request_body_attr = getattr(view, djagger_method_attributes.BODY_PARAMS.value, None)
+        if not request_body_attr: 
+            self.requestBody = None
+            return
+
+        # Case where a pydantic model is passed, assumes only one media type i.e. application/json
+        if isinstance(request_body_attr, ModelMetaclass):
+            self.requestBody = RequestBody(
+                description = request_body_attr.__doc__,
+                content={
+                    "application/json":MediaType._from(request_body_attr, component='requestBodies')
+                }
+            )
+            return 
+        
+        # Case where a dict is passed, extract ``required`` and ``description``
+        # and media type for each pair in dict
+        elif isinstance(request_body_attr, Dict):
+
+            body = RequestBody()
+            body.description = request_body_attr.pop('description', '')
+            body.required = request_body_attr.pop('required', False)
+
+            content = {}
+            for k, v in request_body_attr:
+                
+                if isinstance(v, Dict):
+                    # validate for MediaType if a dict is given as the value of content
+                    content[k] = MediaType(**v)
+
+                elif isinstance(v, ModelMetaclass):
+                    content[k] = MediaType._from(v, component='requestBodies') 
+
+                else:
+                    raise TypeError("Value in request body dict must be a Dict type or pydantic ModelMetaclass")
+                
+            body.content = content
+
+            self.requestBody = body
+            return
+
+        raise TypeError(f"{djagger_method_attributes.BODY_PARAMS.value} needs to be of type Dict or pydantic ModelMetaclass")
 
 
-    @classmethod
     def _extract_responses(self, view : Type, http_method: HttpMethod):
         ...
         return
 
-    @classmethod
     def _extract_security(self, view : Type, http_method: HttpMethod):
         ...
         return
 
-    @classmethod
     def _extract_servers(self, view : Type, http_method: HttpMethod):
         ...
         return
 
-    @classmethod
     def _extract_deprecated(self, view : Type, http_method: HttpMethod):
         ...
         return
-
-
 
     @classmethod
     def _from(cls, view : Type, http_method : HttpMethod) -> Union['Operation', None]:
@@ -297,6 +446,7 @@ class Operation(BaseModel):
         operation._extract_tags(view, http_method)
         operation._extract_summary(view, http_method)
         operation._extract_description(view, http_method)
+        operation._extract_request_body(view, http_method)
         operation._extract_parameters(view, http_method)
         operation._extract_responses(view, http_method)
 
@@ -329,13 +479,17 @@ class Path(BaseModel):
         
         if inspect.isclass(view):
             # For CBV or DRF API, check for methods by looking for get(), post(), patch(), put(), delete() methods
+            print("is class")
             for http_method in HttpMethod.__members__.values():
                 if hasattr(view, http_method):
+                    print(" has method", http_method)
                     if callable(getattr(view, http_method)):
+                        print("make operation")
                         operation = Operation._from(view, http_method)
                         if not operation:
                             continue
-                        if not operation.responses:
+                        # if not operation.responses:
+                        #     warnings.warn(f"{view.__name__} does not have a response schema, will not be documented.")
                             continue
 
                         setattr(path, http_method, operation)
@@ -403,10 +557,10 @@ class Components(BaseModel):
         Builds the component definition $ref according to the component paths
 
         """
-        component_names = cls.__fields__.values.keys()
+        component_names = cls.__fields__.keys()
 
         if component not in component_names:
-            raise ValueError(f"component value must be one of {str(list(component_names))}")
+            raise ValueError(f"component value must be one of {str(list(component_names))}. Value provided: {component}")
 
         suffix = uuid.uuid4().hex
         ref_template = f'#/components/{component}/{{model}}-{suffix}'
@@ -429,7 +583,7 @@ class Document(BaseModel):
     components : Components = Components()
     security : List[SecurityRequirement] = []
     tags : List[Tag] = []
-    externalDocs : ExternalDocs = {}
+    externalDocs : Optional[ExternalDocs]
 
     @classmethod
     def generate(
