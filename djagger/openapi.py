@@ -215,6 +215,45 @@ class Parameter(BaseModel):
     class Config:
         allow_population_by_field_name = True
 
+    @classmethod
+    def to_parameters(cls, model : ModelMetaclass, attr : DjaggerMethodAttributes) -> List['Parameter']:
+        """ Converts the fields of a pydantic model to list of Parameter objects for use in generating request parameters.
+        All attribute names ending in '_params' are relevant here. Non parameter object attributes should not be passed
+        """
+        params = []
+        if not isinstance(attr, DjaggerMethodAttributes.__args__):
+            raise TypeError("Parameter.to_parameters requires attr to be of type `DjaggerMethodAttributes`")
+        
+        if "_params" not in attr.value:
+            raise AttributeError("`to_parameters` only accepts parameter attributes ending with '_param'")
+
+        if not isinstance(model, ModelMetaclass):
+            raise TypeError("Parameter object must be pydantic.main.ModelMetaclass type")
+
+        if attr == attr.BODY_PARAMS:
+            # Request body handled by extract_request_body()
+            return params
+        
+        # Handle parameters - path / query / form / headers/ cookie 
+        # with each field as a separate parameter in the list of parameters
+        properties = Components.extract_component_schema(model).get('properties',{})
+        for name, props in properties.items():
+            param = cls(
+                name=name,
+                description=props.get('description', ""),
+                in_=ParameterLocation.from_method_attribute(attr).value,
+                type_=props.get("type", ""),
+                required=props.get('required', True),
+                deprecated=props.get('deprecated'),
+                style=props.get('style'),
+                explode=props.get('explode'),
+                example=props.get('example'),
+                allowReserved=props.get('allowReserved'),
+            )
+            params.append(param)
+        
+        return params
+
 class RequestBody(BaseModel):
     description : Optional[str]
     content : Dict[str, MediaType] = {}
@@ -259,7 +298,7 @@ class Operation(BaseModel):
     parameters : List[Union[Parameter, Reference]] = []
     requestBody : Optional[Union[RequestBody, Reference]]
     responses: Dict[str, Response] = {} # Keys can be 'default' or http method '200', etc
-    # callbacks : Optional[Dict[str, Dict[str, Union[Path, Reference]]]] # Circular reference with Path
+    callbacks : Optional[Dict[str, Dict[str, Union['Path', Reference]]]] # Circular reference with Path
     deprecated : bool = False
     security : Optional[SecurityRequirement]
     servers : Optional[List[Server]]
@@ -272,10 +311,43 @@ class Operation(BaseModel):
         ...
         return
 
-    def _extract_parameters(self, view : Type, http_method: HttpMethod):
-        ...
-        return
 
+    def _extract_parameters(self, view : Type, http_method: HttpMethod):
+        """ Helper to initialize request `parameters` from a View for a given http method
+        """
+
+        self.parameters = []
+        djagger_method_attributes : DjaggerMethodAttributes = http_method.to_djagger_attribute()
+
+        for attr in djagger_method_attributes.__members__.values():
+            
+            if "_params" not in attr.value:
+                # only consider relevant for parameter attributes - attr name ending in '_params'
+                continue
+
+            if hasattr(view, attr.value):
+
+                request_schema = getattr(view, attr.value)
+
+            else:
+                # If method-level param attribute does not exist e.g. get_cookie_params
+                # Then check if the corresponding API-level param attribute is set e.g. cookie_params and use that as fallback
+                
+                api_level_attr_value = "_".join(attr.value.split("_")[1:]) # Remove http method prefix i.e. 'get_', '_post'
+
+                if not hasattr(view, api_level_attr_value):
+                    # skip if View does not contain even the api-level attribute
+                    continue
+
+                request_schema = getattr(view, api_level_attr_value)
+
+            # Converting serializers to pydantic models
+            if isinstance(request_schema, serializers.SerializerMetaclass):
+                request_schema = SerializerConverter(s=request_schema()).to_model()
+
+            self.parameters += Parameter.to_parameters(request_schema, attr)
+
+        return
     def _extract_tags(self, view : Type, http_method: HttpMethod):
         """ `tags` attribute is initialized on the end point in the following priority:
         1. Look for tags set at the http method level e.g., `get_tags`, `post_tags` attribute
