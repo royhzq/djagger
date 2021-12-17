@@ -67,10 +67,6 @@ class Info(BaseModel):
 class TagGroup(BaseModel):
     """ Tag grouping for ``x-tagGroups`` setting in redoc. 
     This beyond the OpenAPI 3.0 specs but is included for redoc.
-
-    Args:
-        name (str): Name of Tag grouping.
-        tags (List[str]): List of Tag names to include in the grouping.
     """
     name : str 
     tags : List[str] 
@@ -83,15 +79,12 @@ class ServerVariable(BaseModel):
     description : str
 
 class Server(BaseModel):
-    """ Server object in OpenAPI 3.0
-    """
+
     url : str
     description : str = "'"
     variables : Optional[Dict[str, ServerVariable]]
 
 class Reference(BaseModel):
-
-    # Use method .dict(by_alias=True)
 
     ref : str = Field(alias="$ref")
 
@@ -99,6 +92,7 @@ class Reference(BaseModel):
         allow_population_by_field_name = True
 
 class Example(BaseModel):
+    
     summary : str = ""
     description : str = ""
     value : Any
@@ -106,6 +100,7 @@ class Example(BaseModel):
 
 
 class OAuthFlow(BaseModel):
+
     authorizationUrl : str
     tokenURL : str
     refreshURL : Optional[str]
@@ -154,6 +149,7 @@ class Header(BaseModel):
         allow_population_by_field_name = True
 
 class Encoding(BaseModel):
+    
     contentType : str
     headers : Dict[str, Union[Header, Reference]]
     style : Optional[str]
@@ -161,6 +157,7 @@ class Encoding(BaseModel):
     allowReserved : bool = False    
 
 class MediaType(BaseModel):
+
     schema_ : Optional[Union[Dict, Reference]] = Field(alias="schema") # schema can take in a `.schema()` dict value from pydantic
     example : Optional[Any]
     examples : Optional[Dict[str, Union[Example, Reference]]]
@@ -593,6 +590,7 @@ class Operation(BaseModel):
         return operation
 
 class Path(BaseModel):
+
     summary : str = ""
     description : str = ""
     get : Optional[Operation]
@@ -605,7 +603,6 @@ class Path(BaseModel):
     trace : Optional[Operation]
     servers : Optional[List[Server]]
     parameters : List[Union[Parameter, Reference]] = []
-
 
     @classmethod
     def create(cls, view : Type) -> 'Path':
@@ -700,16 +697,30 @@ class Components(BaseModel):
             raise ValueError(f"component value must be one of {str(list(component_names))}. Value provided: {component}")
 
         suffix = uuid.uuid4().hex
-        ref_template = f'#/components/{component}/{{model}}-{suffix}'
-        schema = model.schema(ref_template=ref_template)
+        schema = model.schema(ref_template=f'#/components/{component}/{{model}}-{suffix}')
         definitions = schema.get('definitions', {})
         
         # Change all keys in the component definition to have the suffix as well so the $ref will be valid.
         if definitions:
             schema['definitions'] = { k + '-' + suffix : v for k,v in definitions.items() }
 
+        # Add an additional `component` key to schema to categorize which component category this schema belongst o
+        # This key is to be deleted when compiling components at the document level as it is not a valid OpenAPI field
+        schema['component'] = component
+ 
         return schema
-        
+    
+    @staticmethod
+    def clean_schema_definitions(schema : Dict) -> (str, Dict):
+        """ Given an extracted schema dict from ``extract_component_schema()`` , pop
+        the ``definitions`` and ``component`` key in-place and return them as a tuple.
+        """
+
+        definitions = schema.pop('definitions', {})            
+        component_name = schema.pop('component')
+
+        return (component_name, definitions)
+
 
 class Document(BaseModel):
 
@@ -721,6 +732,22 @@ class Document(BaseModel):
     security : List[SecurityRequirement] = []
     tags : List[Tag] = []
     externalDocs : Optional[ExternalDocs]
+
+
+    def compile_components(self):
+        """ Analogous to ``compile_definitions()`` method for ``swagger.Document``.
+        Build up Component at the base document by compiling all pydantic models in parameters, responses and request bodies. 
+        Also deletes individual definitions field for the schemas residing in parameters, responses and request bodies.
+        """ 
+        components = Components()
+        for path in self.paths.values():
+            for http_method in HttpMethod.values():
+                operation = getattr(path, http_method)
+                if not operation:
+                    continue
+
+            # WIP
+        return None
 
     @classmethod
     def generate(

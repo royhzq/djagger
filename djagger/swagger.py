@@ -239,7 +239,7 @@ class EndPoint(BaseModel):
 
     def _extract_summary(self, view : Type, http_method: HttpMethod):
         """`summary` attribute is initialized on the end point in the following priority:
-        1. Look for `summary` the http method level e.g., `get_summary`, `post_summary` attribute
+        1. Look for `summary` the http method level e.g., `get_summary`, `post_summar` attribute
         2. If not, look for `summary` set at the api level e.g. `summary` attribute (which would apply to all http methods unless 1. exists)
         3. If not, set `summary` to be the API class name.
         """
@@ -554,7 +554,7 @@ class Document(BaseModel):
         """
         definitions = {}
         for path in self.paths.values():
-            for http_method in ['get', 'post', 'put', 'patch', 'delete']:
+            for http_method in HttpMethod.values():
                 endpoint = getattr(path, http_method)
                 if not endpoint:
                     continue
