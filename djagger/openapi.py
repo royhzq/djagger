@@ -7,7 +7,7 @@ from pydantic import BaseModel, Field, ValidationError
 from pydantic.main import ModelMetaclass
 from rest_framework import serializers
 from typing import Optional, List, Dict, Union, Type, Any
-from .utils import base_model_set_examples, get_url_patterns
+from .utils import base_model_set_examples, extract_unique_schema, get_url_patterns
 
 from .enums import (
     HttpMethod, 
@@ -20,6 +20,7 @@ from .enums import (
 import uuid
 import inspect
 import warnings
+import copy 
 
 class Logo(BaseModel):
     """ Logo image for display on redoc documents. 
@@ -167,13 +168,13 @@ class MediaType(BaseModel):
         allow_population_by_field_name = True
     
     @classmethod
-    def _from(cls, model : ModelMetaclass, component : str = "schemas") -> 'MediaType':
+    def _from(cls, model : ModelMetaclass) -> 'MediaType':
         """Generates an instance of MediaType from a pydantic model"""
         
         media = cls()
 
         base_model_set_examples(model)
-        media.schema_ = Components.extract_component_schema(model, component)
+        media.schema_ = extract_unique_schema(model)
         
         # Generate example
         if hasattr(model, 'example'):
@@ -233,7 +234,7 @@ class Parameter(BaseModel):
         
         # Handle parameters - path / query / form / headers/ cookie 
         # with each field as a separate parameter in the list of parameters
-        properties = Components.extract_component_schema(model).get('properties',{})
+        properties = extract_unique_schema(model).get('properties',{})
         for name, props in properties.items():
             param = cls(
                 name=name,
@@ -256,11 +257,45 @@ class RequestBody(BaseModel):
     content : Dict[str, MediaType] = {}
     required : bool = False
 
+    def make_components(self) -> Components:
+        """ Traverses the RequestBody object to clean schemas and build up the ``Components`` object from the schema definitions
+        """
+        components = Components()
+
+        if not self.content:
+            return components
+            
+        for media in self.content.values():
+            if not media.schema_:
+                continue
+            definitions = media.schema_.pop('definitions', {})
+            components.schemas.update(definitions)
+
+        return components
+
+
 class Response(BaseModel):
     description : str = ""
     headers : Optional[Dict[str, Union[Header, Reference]]]
     content : Optional[Dict[str, MediaType]]
     # links : Optional[Dict] # Not supported yet
+
+    def make_components(self) -> Components:
+        """ Traverses the Response object to clean schemas and build up the ``Components`` object from the schema definitions
+        """
+        components = Components()
+
+        if not self.content:
+            return components
+            
+        for media in self.content.values():
+            if not media.schema_:
+                continue
+            definitions = media.schema_.pop('definitions', {})
+            components.schemas.update(definitions)
+
+        return components
+
     @classmethod
     def _from(cls, model : ModelMetaclass) -> 'Response':
         # By default if a pydantic model is passed, the only content type is application/json for MediaType
@@ -682,44 +717,12 @@ class Components(BaseModel):
     # links : Dict[str, Union[,Reference]] = {}
     callbacks : Dict[str, Dict[str, Dict[str, Union[Path, Reference]]]] = {}
 
-    @classmethod
-    def extract_component_schema(cls, model : ModelMetaclass, component : str) -> dict:
-        """ Calls the ``.schema()`` method with a custom ``ref_template`` containing uuid4.
-        This ensures the generated schema object definition will be unique across all other objects
-        if there are duplicate model names (e.g., imported from other modules)
-
-        Builds the component definition $ref according to the component paths
-
-        """
-        component_names = cls.__fields__.keys()
-
-        if component not in component_names:
-            raise ValueError(f"component value must be one of {str(list(component_names))}. Value provided: {component}")
-
-        suffix = uuid.uuid4().hex
-        schema = model.schema(ref_template=f'#/components/{component}/{{model}}-{suffix}')
-        definitions = schema.get('definitions', {})
+    def merge(self, component : 'Components'):
+        """Copy the contents of another ``Components`` instance and merge it into this instance"""
         
-        # Change all keys in the component definition to have the suffix as well so the $ref will be valid.
-        if definitions:
-            schema['definitions'] = { k + '-' + suffix : v for k,v in definitions.items() }
+        for field in self.__fields__.keys():
+            getattr(self, field).update(copy.deepcopy(getattr(component, field)))
 
-        # Add an additional `component` key to schema to categorize which component category this schema belongst o
-        # This key is to be deleted when compiling components at the document level as it is not a valid OpenAPI field
-        schema['component'] = component
- 
-        return schema
-    
-    @staticmethod
-    def clean_schema_definitions(schema : Dict) -> (str, Dict):
-        """ Given an extracted schema dict from ``extract_component_schema()`` , pop
-        the ``definitions`` and ``component`` key in-place and return them as a tuple.
-        """
-
-        definitions = schema.pop('definitions', {})            
-        component_name = schema.pop('component')
-
-        return (component_name, definitions)
 
 
 class Document(BaseModel):
@@ -733,20 +736,31 @@ class Document(BaseModel):
     tags : List[Tag] = []
     externalDocs : Optional[ExternalDocs]
 
-
     def compile_components(self):
         """ Analogous to ``compile_definitions()`` method for ``swagger.Document``.
         Build up Component at the base document by compiling all pydantic models in parameters, responses and request bodies. 
         Also deletes individual definitions field for the schemas residing in parameters, responses and request bodies.
         """ 
         components = Components()
+
         for path in self.paths.values():
             for http_method in HttpMethod.values():
                 operation = getattr(path, http_method)
                 if not operation:
                     continue
 
-            # WIP
+                # components from response
+                for response in operation.responses.values():
+                    components.merge(response.make_response_component())
+
+                # components from request bodies
+                if isinstance(operation.requestBody, RequestBody):
+                    RequestBody.
+
+
+
+
+
         return None
 
     @classmethod
