@@ -3,8 +3,8 @@ from rest_framework import serializers, fields
 from typing import List
 from ...enums import HttpMethod
 
-from ...schema import (
-    DjaggerEndPoint
+from ...swagger import (
+    EndPoint
 )
 
 def test_extract_parameters():
@@ -16,7 +16,7 @@ def test_extract_parameters():
     class View:
         get_path_params = GetParams
 
-    endpoint = DjaggerEndPoint()
+    endpoint = EndPoint()
     endpoint._extract_parameters(view=View, http_method=HttpMethod('get'))
     assert len(endpoint.parameters) == 2 # value1 and value2 attr
 
@@ -29,7 +29,7 @@ def test_extract_parameters_from_serializer():
     class View:
         get_path_params = GetSerializer
 
-    endpoint = DjaggerEndPoint()
+    endpoint = EndPoint()
     endpoint._extract_parameters(view=View, http_method=HttpMethod('get'))
     assert len(endpoint.parameters) == 2 # value1 and value2 attr
 
@@ -57,13 +57,13 @@ def test_extract_paramaters_fallback():
         body_params = BodyParams
 
     # View post body params should be utilizing `PostBodyParams`
-    endpoint = DjaggerEndPoint()
+    endpoint = EndPoint()
     endpoint._extract_parameters(view=View, http_method=HttpMethod('post'))
     assert len(endpoint.parameters) == 1
     assert endpoint.parameters[0].description == PostBodyParams.__doc__
 
     # View2 post body params should be utilizing `BodyParams`
-    endpoint = DjaggerEndPoint()
+    endpoint = EndPoint()
     endpoint._extract_parameters(view=View2, http_method=HttpMethod('post'))
     assert len(endpoint.parameters) == 1
     assert endpoint.parameters[0].description == BodyParams.__doc__
@@ -78,7 +78,7 @@ def test_extract_responses():
     class View:
         get_response_schema = GetResponse
 
-    endpoint = DjaggerEndPoint()
+    endpoint = EndPoint()
     endpoint._extract_responses(view=View, http_method=HttpMethod('get'))
     assert len(endpoint.responses) == 1 
 
@@ -97,7 +97,7 @@ def test_extract_multiple_responses():
             '400': ErrorResponse
         }
 
-    endpoint = DjaggerEndPoint()
+    endpoint = EndPoint()
     endpoint._extract_responses(view=View, http_method=HttpMethod('get'))
     assert len(endpoint.responses) == 2
 
@@ -110,7 +110,7 @@ def test_extract_responses_from_serializer():
     class View:
         get_response_schema = GetSerializer
 
-    endpoint = DjaggerEndPoint()
+    endpoint = EndPoint()
     endpoint._extract_responses(view=View, http_method=HttpMethod('get'))
     assert len(endpoint.responses) == 1 
 
@@ -129,7 +129,7 @@ def test_extract_multiple_responses_from_serializer():
             '200':GetSerializer,
             '400':ErrorSerializer
         }
-    endpoint = DjaggerEndPoint()
+    endpoint = EndPoint()
     endpoint._extract_responses(view=View, http_method=HttpMethod('get'))
     assert len(endpoint.responses) == 2
 
@@ -156,13 +156,13 @@ def test_extract_responses_fallback():
         response_schema = SchemaResponse
 
     # View put response  should be utilizing `PutSchemaResponse`
-    endpoint = DjaggerEndPoint()
+    endpoint = EndPoint()
     endpoint._extract_responses(view=View, http_method=HttpMethod('put'))
     assert len(endpoint.responses) == 1
     assert endpoint.responses['200'].description == PutSchemaResponse.__doc__
 
     # View2 put response  should be utilizing `SchemaResponse`
-    endpoint = DjaggerEndPoint()
+    endpoint = EndPoint()
     endpoint._extract_responses(view=View2, http_method=HttpMethod('put'))
     assert len(endpoint.responses) == 1
     assert endpoint.responses['200'].description == SchemaResponse.__doc__

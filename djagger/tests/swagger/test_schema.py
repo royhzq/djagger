@@ -1,13 +1,13 @@
-""" Tests for base document generation i.e., ``DjaggerDoc`` class
+""" Tests for base document generation i.e., ``Document`` class
 """
 
-from ...schema import (
-    DjaggerExternalDocs, 
-    DjaggerTag,
+from ...swagger import (
+    ExternalDocs, 
+    Tag,
 )
 
 def test_djagger_external_docs():
-    data = DjaggerExternalDocs(
+    data = ExternalDocs(
         description="test description",
         url="URL of description"
     ).dict()
@@ -15,10 +15,10 @@ def test_djagger_external_docs():
 
 
 def test_djagger_tag():
-    data = DjaggerTag(
+    data = Tag(
         name="Tag name",
         description = "description",
-        externalDocs = DjaggerExternalDocs(
+        externalDocs = ExternalDocs(
             description="test description",
             url="URL description"
         )

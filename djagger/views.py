@@ -3,7 +3,7 @@ from django.http import JsonResponse, HttpRequest, HttpResponse
 from django.conf import settings
 
 from .decorators import schema
-from .schema import DjaggerDoc
+from .swagger import Document
 
 import os
 
@@ -12,7 +12,7 @@ def open_api_json(request : HttpRequest):
 
     """ View for auto generated OpenAPI JSON document 
     """
-    document = DjaggerDoc.generate_openapi(
+    document = Document.generate(
         app_names = getattr(settings, 'DJAGGER_APP_NAMES', []),
         description = getattr(settings, 'DJAGGER_DESCRIPTION', ""),
         contact_name = getattr(settings, 'DJAGGER_CONTACT_NAME', ""),

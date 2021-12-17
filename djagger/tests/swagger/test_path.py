@@ -1,7 +1,7 @@
 from pydantic import BaseModel
 
-from ...schema import (
-    DjaggerPath
+from ...swagger import (
+    Path
 )
 
 
@@ -23,20 +23,20 @@ def test_exclude_endpoint():
             return None
 
     # No exclusion
-    path = DjaggerPath.create(View)
+    path = Path.create(View)
     assert path.get
     assert path.post
 
     # Exclude get
     View.get_djagger_exclude = True
-    path = DjaggerPath.create(View)
+    path = Path.create(View)
     assert path.get == None
     assert path.post
 
     # Exclude post
     del View.get_djagger_exclude
     View.post_djagger_exclude = True
-    path = DjaggerPath.create(View)
+    path = Path.create(View)
     assert path.get 
     assert path.post == None
 

@@ -33,50 +33,50 @@ import inspect
 import re
 import uuid
 
-class DjaggerLogo(BaseModel):
+class Logo(BaseModel):
     """ Logo image for display on redoc documents. 
     """
     url : Optional[str]
     altText : Optional[str]
 
-class DjaggerExternalDocs(BaseModel):
+class ExternalDocs(BaseModel):
     description: Optional[str]
     url : Optional[str]
 
-class DjaggerTag(BaseModel):
+class Tag(BaseModel):
     """ OpenAPI `tags` """
     name : str = ""
     description : str = ""
-    externalDocs : Optional[DjaggerExternalDocs]
+    externalDocs : Optional[ExternalDocs]
 
-class DjaggerContact(BaseModel):
+class Contact(BaseModel):
     """ OpenAPI `contact` object"""
     name : Optional[str]
     url : Optional[str]
     email : Optional[str]
 
-class DjaggerLicense(BaseModel):
+class License(BaseModel):
     """ OpenAPI `license` object"""
     name : Optional[str]
     url : Optional[str]
 
-class DjaggerInfo(BaseModel):
+class Info(BaseModel):
 
     """OpenAPI document information"""
 
-    description : str = Field("Djagger OpenAPI Document Description", description="Djagger OpenAPI descripition")
+    description : str = Field(" OpenAPI Document Description", description=" OpenAPI descripition")
     version : str = "1.0.5"
     title : str = "Djagger OpenAPI Documentation"
     termsOfService : str = Field("",description="Reference to any TOS")
-    contact : DjaggerContact = Field({"email":"example@example.com"}, description="Dict of contact information")
-    x_logo : Optional[DjaggerLogo] = Field(alias="x-logo")
-    license : Optional[DjaggerLicense]
+    contact : Contact = Field({"email":"example@example.com"}, description="Dict of contact information")
+    x_logo : Optional[Logo] = Field(alias="x-logo")
+    license : Optional[License]
 
     class Config:
         allow_population_by_field_name = True
 
 
-class DjaggerTagGroup(BaseModel):
+class TagGroup(BaseModel):
     """ Tag grouping for ``x-tagGroups`` setting in redoc. 
     This beyond the OpenAPI 3.0 specs but is included for redoc.
 
@@ -87,7 +87,7 @@ class DjaggerTagGroup(BaseModel):
     name : str 
     tags : List[str] 
 
-class DjaggerParameter(BaseModel):
+class Parameter(BaseModel):
     """ OpenAPI object that includes schema and other details for the particular API endpoint. For POST params """
 
     name : str
@@ -102,13 +102,13 @@ class DjaggerParameter(BaseModel):
 
 
     @classmethod
-    def to_parameters(cls, schema : ModelMetaclass, attr : DjaggerMethodAttributes) -> List['DjaggerParameter']:
-        """ Converts the fields of a pydantic model to list of DjaggerParameter objects for use in generating request parameters.
+    def to_parameters(cls, schema : ModelMetaclass, attr : DjaggerMethodAttributes) -> List['Parameter']:
+        """ Converts the fields of a pydantic model to list of Parameter objects for use in generating request parameters.
         All attribute names ending in '_params' are relevant here. Non parameter object attributes should not be passed
         """
         params = []
         if not isinstance(attr, DjaggerMethodAttributes.__args__):
-            raise TypeError("DjaggerParameter.to_parameters requires attr to be of type `DjaggerMethodAttributes`")
+            raise TypeError("Parameter.to_parameters requires attr to be of type `DjaggerMethodAttributes`")
 
         if attr == attr.RESPONSE_SCHEMA:
             # response schemas not considered for request parameters
@@ -154,14 +154,14 @@ class DjaggerParameter(BaseModel):
         return params
 
 
-class DjaggerResponse(BaseModel):
+class Response(BaseModel):
         """ OpenAPI Response object for a single http code """
         description: str = ""
         schema_ : dict = Field(default={}, alias="schema") # The value of .schema() call on a pydantic model
 
         @classmethod
-        def _from(cls, model : ModelMetaclass) -> 'DjaggerResponse':
-            """ Instantiate DjaggerResponse from a pydantic type model
+        def _from(cls, model : ModelMetaclass) -> 'Response':
+            """ Instantiate Response from a pydantic type model
             """
 
             if not isinstance(model, ModelMetaclass):
@@ -178,7 +178,7 @@ class DjaggerResponse(BaseModel):
             allow_population_by_field_name = True
 
 
-class DjaggerEndPoint(BaseModel):
+class EndPoint(BaseModel):
     """OpenAPI object for a given http method under a SwaggerPath"""
 
     tags : List[str] = []
@@ -187,8 +187,8 @@ class DjaggerEndPoint(BaseModel):
     operationId : Optional[str]
     consumes : List[str] = ["application/json"]
     produces : List[str] = ["application/json"]
-    parameters : List[DjaggerParameter] = []
-    responses: Dict[str, DjaggerResponse] = {}
+    parameters : List[Parameter] = []
+    responses: Dict[str, Response] = {}
 
     def _extract_consumes(self, view : Type, http_method: HttpMethod):
 
@@ -379,12 +379,12 @@ class DjaggerEndPoint(BaseModel):
             if isinstance(request_schema, serializers.SerializerMetaclass):
                 request_schema = SerializerConverter(s=request_schema()).to_model()
 
-            self.parameters += DjaggerParameter.to_parameters(request_schema, attr)
+            self.parameters += Parameter.to_parameters(request_schema, attr)
 
         return
 
     def _extract_responses(self, view : Type, http_method : HttpMethod):
-        """ Helper to initialize `responses` from a view class and returns responses dict for DjaggerEndPoint
+        """ Helper to initialize `responses` from a view class and returns responses dict for EndPoint
         """
         if not isinstance(http_method, HttpMethod):
             raise TypeError("http_method is not a valid HttpMethod type")
@@ -402,14 +402,14 @@ class DjaggerEndPoint(BaseModel):
         # When attribute is a pydantic model - assume 200 response only
         if isinstance(response_schema, ModelMetaclass):
             responses = { 
-                '200': DjaggerResponse._from(response_schema)
+                '200': Response._from(response_schema)
             }
         # When attribute is a Serializer - assume 200 response only
         elif isinstance(response_schema, serializers.SerializerMetaclass):
             responses = {
-                '200': DjaggerResponse._from(SerializerConverter(s=response_schema()).to_model())
+                '200': Response._from(SerializerConverter(s=response_schema()).to_model())
             }
-        # When attribute is a dict of responses, prepare dict of DjaggerResponse values
+        # When attribute is a dict of responses, prepare dict of Response values
         elif isinstance(response_schema, Dict):
             for status_code, model in response_schema.items():
                 if not isinstance(status_code, str):
@@ -419,7 +419,7 @@ class DjaggerEndPoint(BaseModel):
                 if isinstance(model, serializers.SerializerMetaclass):
                     model = SerializerConverter(s=model()).to_model()
 
-                responses[status_code] = DjaggerResponse._from(model)
+                responses[status_code] = Response._from(model)
 
 
         
@@ -427,8 +427,8 @@ class DjaggerEndPoint(BaseModel):
         
 
     @classmethod
-    def _from(cls, view : Type, http_method : HttpMethod) -> Union['DjaggerEndPoint', None]:
-        """ Extract attributes from a view class to instantiate DjaggerEndPoint given the type of http method for the endpoint.
+    def _from(cls, view : Type, http_method : HttpMethod) -> Union['EndPoint', None]:
+        """ Extract attributes from a view class to instantiate EndPoint given the type of http method for the endpoint.
         Wil return None if exclude attribute is True.
         """
         
@@ -455,17 +455,17 @@ class DjaggerEndPoint(BaseModel):
 
         return endpoint
 
-class DjaggerPath(BaseModel):
+class Path(BaseModel):
     """ OpenAPI Path Object """
-    post : Optional[DjaggerEndPoint]
-    get : Optional[DjaggerEndPoint]
-    put : Optional[DjaggerEndPoint]
-    patch : Optional[DjaggerEndPoint]
-    delete : Optional[DjaggerEndPoint]
+    post : Optional[EndPoint]
+    get : Optional[EndPoint]
+    put : Optional[EndPoint]
+    patch : Optional[EndPoint]
+    delete : Optional[EndPoint]
 
     @classmethod
-    def create(cls, view : Type) -> 'DjaggerPath':
-        """ Given a Class-based view or a function based view, create the DjaggerPath object 
+    def create(cls, view : Type) -> 'Path':
+        """ Given a Class-based view or a function based view, create the Path object 
         from the Djagger attributes set in the view.
         """
         path = cls()
@@ -475,7 +475,13 @@ class DjaggerPath(BaseModel):
             for http_method in HttpMethod.__members__.values():
                 if hasattr(view, http_method):
                     if callable(getattr(view, http_method)):
-                        setattr(path, http_method.value, DjaggerEndPoint._from(view, http_method))
+                        endpoint = EndPoint._from(view, http_method)
+                        if not endpoint:
+                            continue
+                        if not endpoint.responses:
+                            continue
+
+                        setattr(path, http_method, endpoint)
 
         elif inspect.isfunction(view):
 
@@ -492,12 +498,13 @@ class DjaggerPath(BaseModel):
                         http_method = HttpMethod(k)
                     except ValueError:
                         continue
-    
-                    setattr(
-                        path, 
-                        http_method, 
-                        DjaggerEndPoint._from(view, http_method)
-                    )
+
+                    endpoint = EndPoint._from(view, http_method)
+                    if not endpoint:
+                        continue
+                    if not endpoint.responses:
+                        continue
+                    setattr(path, http_method, endpoint)
 
             # For FBVs, check for existence of http methods from the `djagger_http_methods` attribute
             # set by the @schema decorator
@@ -507,38 +514,43 @@ class DjaggerPath(BaseModel):
 
             for method in getattr(view, DJAGGER_HTTP_METHODS, []):
                 http_method = HttpMethod(method.lower())
-                setattr(path, http_method.value, DjaggerEndPoint._from(view, http_method))
+                endpoint = EndPoint._from(view, http_method)
+                if not endpoint:
+                    continue
+                if not endpoint.responses:
+                    continue
+                setattr(path, http_method, endpoint)
 
         return path
 
-class DjaggerDoc(BaseModel):
+class Document(BaseModel):
     
     """
     OpenAPI base document
 
     Args:
         swagger (str) : Swagger version number.
-        info (DjaggerInfo) : ``DjaggerInfo`` object.
+        info (Info) : ``Info`` object.
         host (str): Hostname for APIs.
         basePath (str): Base path of URL e.g., ``/V1``.
-        tags (List[DjaggerTag]) : List of ``DjaggerTag`` objects.
+        tags (List[Tag]) : List of ``Tag`` objects.
         schemes (List[str]) : List of URL schemes. Defaults to ``['http', 'https']``.
-        paths (Dict[str, DjaggerPath]): Dictionary containing route as the key and ``DjaggerPath`` object as its value.
+        paths (Dict[str, Path]): Dictionary containing route as the key and ``Path`` object as its value.
         securityDefinitions (Dict): WIP
         definitions (Dict[str, dict]): Dictionary containing OpenAPI definitions.
-        x_tag_groups (List[DjaggerTagGroup]) : List of ``DjaggerTagGroup`` tag groupings if any.
+        x_tag_groups (List[TagGroup]) : List of ``TagGroup`` tag groupings if any.
     """ 
 
     swagger : str = "2.0"
-    info : DjaggerInfo
+    info : Info
     host : str = ""
     basePath : str = ""
-    tags : List[DjaggerTag] = []
+    tags : List[Tag] = []
     schemes : List[str] = Field(["https", "http"])
-    paths : Dict[str, DjaggerPath] = {}
+    paths : Dict[str, Path] = {}
     securityDefinitions : dict = {} # Incomplete
     definitions : Dict[str, dict] = {}
-    x_tag_groups : Optional[List[DjaggerTagGroup]] = Field(alias="x-tagGroups")
+    x_tag_groups : Optional[List[TagGroup]] = Field(alias="x-tagGroups")
 
     class Config:
         allow_population_by_field_name = True
@@ -571,10 +583,10 @@ class DjaggerDoc(BaseModel):
         return 
 
     @classmethod
-    def generate_openapi(
+    def generate(
         cls,
         app_names : List[str] = [],
-        tags : List[DjaggerTag] = [],
+        tags : List[Tag] = [],
         swagger = "2.0",
         host = "example.org",
         basePath = "",
@@ -583,19 +595,19 @@ class DjaggerDoc(BaseModel):
         version = "1.0.5",
         title = "Djagger OpenAPI Documentation",
         terms_of_service = "",
-        contact_name = "",
+        contact_name = None,
         contact_email = "",
         contact_url = "",
         license_name = "",
         license_url = "",
-        x_tag_groups : List[DjaggerTagGroup]= []
+        x_tag_groups : List[TagGroup]= []
     ) -> dict :
         """ Inspects URLPatterns in given list of apps to generate the openAPI json object for the Django project.
         Returns the JSON string object for the resulting OAS document.
         """
         
         url_patterns = get_url_patterns(app_names)
-        paths : Dict[str, DjaggerPath] = {}
+        paths : Dict[str, Path] = {}
 
         for route, url_pattern in url_patterns:
 
@@ -609,25 +621,34 @@ class DjaggerDoc(BaseModel):
                 if view.djagger_exclude:
                     continue
             
-            paths["/" + route] = DjaggerPath.create(view)
+            path = Path.create(view)
 
+            # If path has none of the methods documented, skip its documentation
+            if getattr(path, 'get', None) or \
+                getattr(path, 'post', None) or \
+                getattr(path, 'put', None) or \
+                getattr(path, 'patch', None) or \
+                getattr(path, 'delete', None):
+
+                    paths["/" + route] = path
+        
         # Create tag objects as provided
         # Note that if tags supplied is empty, they will still be generated when
         # set as attributes in the individual API or endpoints
         tags = [
-            DjaggerTag(name=tag["name"], description=tag.get("description","")) for tag in tags
+            Tag(name=tag["name"], description=tag.get("description","")) for tag in tags
         ]
-        info = DjaggerInfo(
+        info = Info(
             description=description,
             version=version,
             title=title,
             termsOfService=terms_of_service,
-            contact=DjaggerContact(
+            contact=Contact(
                 name=contact_name,
                 email=contact_email,
                 url=contact_url
             ),
-            license=DjaggerLicense(
+            license=License(
                 name=license_name,
                 url=license_url
             ),
