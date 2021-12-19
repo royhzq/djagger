@@ -87,7 +87,51 @@ class Server(BaseModel):
 
 class Reference(BaseModel):
 
-    ref : str = Field(alias="$ref")
+    ref_ : str = Field(alias="$ref")
+
+    def ref_name(self):
+        # Assuming reference has default ref_template 
+        # '#/definitions/{model}'
+        return self.ref_.split("/")[-1]
+    
+    @classmethod
+    def to_ref(cls, obj : Any) -> Union['Reference', None]:
+        # Check if variable is a valid dict representation of Ref
+        # if valid, returns an instance of the Ref
+        if isinstance(obj, Dict):
+            try:
+                return cls(**obj)
+            except (TypeError, ValidationError):
+                return None
+        return None
+
+    @staticmethod
+    def dereference(schema : Union[Dict, List], definitions: Dict) -> Dict:
+        """Recursively converts all references within a schema into the actual referenced object. 
+        The resulting schema is the same one without any references.
+        """
+        if isinstance(schema, Dict):
+            for k, v in schema.items():
+                ref = Reference.to_ref(v)
+                if ref:
+                    ref_obj = definitions.get(ref.ref_name(), {})
+                    schema[k] = dereference(ref_obj, definitions)
+                    
+                elif isinstance(v, Dict) or isinstance(v, List):
+                    schema[k] = dereference(v, definitions)
+
+        if isinstance(schema, List):
+            
+            for i in range(len(schema)):
+                ref = Reference.to_ref(schema[i])
+                if ref:
+                    ref_obj = definitions.get(ref.ref_name(), {})
+                    schema[i] = dereference(ref_obj, definitions)
+                    
+                elif isinstance(schema[i], Dict) or isinstance(schema[i], List):
+                    schema[i] = dereference(schema[i], definitions)
+
+        return schema
 
     class Config:
         allow_population_by_field_name = True
@@ -174,7 +218,13 @@ class MediaType(BaseModel):
         media = cls()
 
         base_model_set_examples(model)
-        media.schema_ = extract_unique_schema(model)
+
+        schema = model.schema()
+        definitions = schema.pop('definitions', {})
+        if not definitions:
+            media.schema_ = schema
+        else:
+            media.schema_ = Reference.dereference(schema, definitions)
         
         # Generate example
         if hasattr(model, 'example'):
@@ -234,7 +284,15 @@ class Parameter(BaseModel):
         
         # Handle parameters - path / query / form / headers/ cookie 
         # with each field as a separate parameter in the list of parameters
-        properties = extract_unique_schema(model).get('properties',{})
+        
+        schema = model.schema()
+        definitions = schema.pop('definitions', {})
+        if definitions:
+           schema = Reference.dereference(schema, definitions)
+
+
+        properties = schema.get('properties',{})
+
         for name, props in properties.items():
             param = cls(
                 name=name,
@@ -257,44 +315,11 @@ class RequestBody(BaseModel):
     content : Dict[str, MediaType] = {}
     required : bool = False
 
-    def make_components(self) -> Components:
-        """ Traverses the RequestBody object to clean schemas and build up the ``Components`` object from the schema definitions
-        """
-        components = Components()
-
-        if not self.content:
-            return components
-            
-        for media in self.content.values():
-            if not media.schema_:
-                continue
-            definitions = media.schema_.pop('definitions', {})
-            components.schemas.update(definitions)
-
-        return components
-
-
 class Response(BaseModel):
     description : str = ""
     headers : Optional[Dict[str, Union[Header, Reference]]]
     content : Optional[Dict[str, MediaType]]
     # links : Optional[Dict] # Not supported yet
-
-    def make_components(self) -> Components:
-        """ Traverses the Response object to clean schemas and build up the ``Components`` object from the schema definitions
-        """
-        components = Components()
-
-        if not self.content:
-            return components
-            
-        for media in self.content.values():
-            if not media.schema_:
-                continue
-            definitions = media.schema_.pop('definitions', {})
-            components.schemas.update(definitions)
-
-        return components
 
     @classmethod
     def _from(cls, model : ModelMetaclass) -> 'Response':
@@ -723,8 +748,6 @@ class Components(BaseModel):
         for field in self.__fields__.keys():
             getattr(self, field).update(copy.deepcopy(getattr(component, field)))
 
-
-
 class Document(BaseModel):
 
     openapi : str = "3.0.0"
@@ -735,33 +758,6 @@ class Document(BaseModel):
     security : List[SecurityRequirement] = []
     tags : List[Tag] = []
     externalDocs : Optional[ExternalDocs]
-
-    def compile_components(self):
-        """ Analogous to ``compile_definitions()`` method for ``swagger.Document``.
-        Build up Component at the base document by compiling all pydantic models in parameters, responses and request bodies. 
-        Also deletes individual definitions field for the schemas residing in parameters, responses and request bodies.
-        """ 
-        components = Components()
-
-        for path in self.paths.values():
-            for http_method in HttpMethod.values():
-                operation = getattr(path, http_method)
-                if not operation:
-                    continue
-
-                # components from response
-                for response in operation.responses.values():
-                    components.merge(response.make_response_component())
-
-                # components from request bodies
-                if isinstance(operation.requestBody, RequestBody):
-                    RequestBody.
-
-
-
-
-
-        return None
 
     @classmethod
     def generate(
@@ -842,7 +838,5 @@ class Document(BaseModel):
             paths=paths,
             x_tag_groups=x_tag_groups,
         )
-
-        # document.compile_definitions()
 
         return document.dict(by_alias=True, exclude_none=True)
