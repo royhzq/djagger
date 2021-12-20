@@ -370,8 +370,8 @@ class Operation(BaseModel):
     operationId : Optional[str]
     parameters : List[Union[Parameter, Reference]] = []
     requestBody : Optional[Union[RequestBody, Reference]]
-    responses: Responses = {} # Keys can be 'default' or http method '200', etc
-    callbacks : Optional[Dict[str, Union[Callback, Reference]]] #
+    responses: Responses = {}
+    callbacks : Optional[Dict[str, Union[Callback, Reference]]] # TODO: callbacks Not implemented yet
     deprecated : bool = False
     security : Optional[List[SecurityRequirement]]
     servers : Optional[List[Server]]
