@@ -295,7 +295,7 @@ class Parameter(BaseModel):
             # Request body handled by extract_request_body()
             return params
         
-        # Handle parameters - path / query / form / headers/ cookie 
+        # Handle parameters - path / query / header/ cookie 
         # with each field as a separate parameter in the list of parameters
         
         schema = model.schema()
@@ -303,21 +303,22 @@ class Parameter(BaseModel):
         if definitions:
            schema = Reference.dereference(schema, definitions)
 
-
         properties = schema.get('properties',{})
 
         for name, props in properties.items():
             param = cls(
                 name=name,
-                description=props.get('description', ""),
+                description=props.get('description'),
                 in_=ParameterLocation.from_method_attribute(attr).value,
-                type_=props.get("type", ""),
-                required=props.get('required', True),
+                required=props.get('required'),
                 deprecated=props.get('deprecated'),
+                allowReserved=props.get('allowReserved'),
                 style=props.get('style'),
                 explode=props.get('explode'),
                 example=props.get('example'),
-                allowReserved=props.get('allowReserved'),
+                examples=props.get('examples'),
+                content=props.get('content'),
+                schema_=props.get('schema')
             )
             params.append(param)
         
@@ -327,8 +328,6 @@ class RequestBody(BaseModel):
     description : Optional[str]
     content : Dict[str, MediaType] = {}
     required : bool = False
-
-
 
 class Response(BaseModel):
     description : str = ""
@@ -372,17 +371,122 @@ class Operation(BaseModel):
     parameters : List[Union[Parameter, Reference]] = []
     requestBody : Optional[Union[RequestBody, Reference]]
     responses: Responses = {} # Keys can be 'default' or http method '200', etc
-    callbacks : Optional[Dict[str, Union[Callback, Reference]]]
+    callbacks : Optional[Dict[str, Union[Callback, Reference]]] #
     deprecated : bool = False
     security : Optional[List[SecurityRequirement]]
     servers : Optional[List[Server]]
 
-    def _extract_operationId(self, view : Type, http_method: HttpMethod):
-        ...
+    def _extract_operation_id(self, view : Type, http_method: HttpMethod):
+
+        djagger_method_attributes : DjaggerMethodAttributes = http_method.to_djagger_attribute()
+
+        self.operationId = getattr(view, djagger_method_attributes.OPERATION_ID.value, None)
+        if not self.operationId:
+            self.operationId = getattr(view, DjaggerAPIAttributes.OPERATION_ID.value, None)
+        
+        assert isinstance(self.operationId, (str, type(None))), "operationId attribute needs to be string"
+
         return
 
-    def _extract_externalDocs(self, view : Type, http_method: HttpMethod):
-        ...
+    def _extract_external_docs(self, view : Type, http_method: HttpMethod):
+
+        djagger_method_attributes : DjaggerMethodAttributes = http_method.to_djagger_attribute()
+
+        self.externalDocs = getattr(view, djagger_method_attributes.EXTERNAL_DOCS.value, None)
+        if not self.externalDocs:
+            self.externalDocs = getattr(view, DjaggerAPIAttributes.EXTERNAL_DOCS.value, None)
+
+        assert isinstance(self.externalDocs, (Dict, type(None))), "externalDocs attribute needs to be a dict"
+
+        if self.externalDocs:
+            self.externalDocs = ExternalDocs.parse_obj(self.externalDocs)
+
+        return
+
+    def _extract_parameters(self, view : Type, http_method: HttpMethod):
+        """ Helper to initialize request `parameters` from a View for a given http method
+        """
+
+        self.parameters = []
+        djagger_method_attributes : DjaggerMethodAttributes = http_method.to_djagger_attribute()
+
+        for attr in djagger_method_attributes.__members__.values():
+            
+            if "_params" not in attr.value:
+                # only consider relevant for parameter attributes - attr name ending in '_params'
+                continue
+
+            if hasattr(view, attr.value):
+
+                request_schema = getattr(view, attr.value)
+
+            else:
+                # If method-level param attribute does not exist e.g. get_cookie_params
+                # Then check if the corresponding API-level param attribute is set e.g. cookie_params and use that as fallback
+                
+                api_level_attr_value = "_".join(attr.value.split("_")[1:]) # Remove http method prefix i.e. 'get_', '_post'
+
+                if not hasattr(view, api_level_attr_value):
+                    # skip if View does not contain even the api-level attribute
+                    continue
+
+                request_schema = getattr(view, api_level_attr_value)
+
+            # Converting serializers to pydantic models
+            if isinstance(request_schema, serializers.SerializerMetaclass):
+                request_schema = SerializerConverter(s=request_schema()).to_model()
+
+            self.parameters += Parameter.to_parameters(request_schema, attr)
+
+        return
+
+    def _extract_tags(self, view : Type, http_method: HttpMethod):
+
+        djagger_method_attributes = http_method.to_djagger_attribute()
+
+        tags = getattr(view, djagger_method_attributes.TAGS.value, None)
+
+        if not tags:
+            tags = getattr(view, DjaggerAPIAttributes.TAGS.value, None)
+        if not tags:
+            tags = [view.__module__.split(".")[0]]
+        
+        if tags: 
+            assert isinstance(tags, List), "Tags need to be a list of strings"
+            for t in tags:
+                assert isinstance(t, str), "Tag items need to of string type"
+
+        self.tags = tags
+
+        return
+
+    def _extract_summary(self, view : Type, http_method: HttpMethod):
+
+        djagger_method_attributes : DjaggerMethodAttributes = http_method.to_djagger_attribute()
+
+        self.summary = getattr(view, djagger_method_attributes.SUMMARY.value, None)
+        if not self.summary:
+            self.summary = getattr(view, DjaggerAPIAttributes.SUMMARY.value, None)
+        if not self.summary:
+            self.summary = view.__name__
+
+        assert isinstance(self.summary, (str, type(None))), "summary attribute needs to be string"
+
+        return
+
+
+    def _extract_description(self, view : Type, http_method: HttpMethod):
+
+        djagger_method_attributes : DjaggerMethodAttributes = http_method.to_djagger_attribute()
+
+        self.description = getattr(view, djagger_method_attributes.DESCRIPTION.value, None)
+        if not self.description:
+            self.description = getattr(view, DjaggerAPIAttributes.DESCRIPTION.value, None)
+        if not self.description:
+            self.description = view.__doc__
+
+        assert isinstance(self.description, (str, type(None))), "description attribute needs to be string"
+
         return
 
 
@@ -421,109 +525,6 @@ class Operation(BaseModel):
 
             self.parameters += Parameter.to_parameters(request_schema, attr)
 
-        return
-    def _extract_tags(self, view : Type, http_method: HttpMethod):
-        """ `tags` attribute is initialized on the end point in the following priority:
-        1. Look for tags set at the http method level e.g., `get_tags`, `post_tags` attribute
-        2. If not, look for tags set at the api level e.g. `tags` attribute (which would apply to all http methods unless 1. exists)
-        3. If not, set the tags to be default as the app module name in which the api resides in.
-        """
-
-        # 1. Get tags specific to endpoint http method
-        djagger_method_attributes = http_method.to_djagger_attribute()
-        try:
-            tags = getattr(view, djagger_method_attributes.TAGS.value)
-            if not isinstance(tags, List):
-                raise TypeError('tags attribute must be a list of strings')
-            self.tags = tags
-            return
-
-        except AttributeError:
-            pass
-
-        # 2. Get tags at the API level
-        try:
-            tags = getattr(view, DjaggerAPIAttributes.TAGS.value)
-            if not isinstance(tags, List):
-                raise TypeError('tags attribute must be a list of strings')
-            self.tags = tags
-            return
-        except AttributeError:
-            pass
-
-        # 3. Set tags as the app module name of the API
-        tags = [view.__module__.split(".")[0]]
-
-        self.tags = tags
-        return
-
-
-    def _extract_summary(self, view : Type, http_method: HttpMethod):
-        """`summary` attribute is initialized on the end point in the following priority:
-        1. Look for `summary` the http method level e.g., `get_summary`, `post_summary` attribute
-        2. If not, look for `summary` set at the api level e.g. `summary` attribute (which would apply to all http methods unless 1. exists)
-        3. If not, set `summary` to be the API class name.
-        """
-
-        # 1. Get summary specific to endpoint http method
-        djagger_method_attributes = http_method.to_djagger_attribute()
-        try:
-            summary = getattr(view, djagger_method_attributes.SUMMARY.value)
-            if not isinstance(summary, str):
-                raise TypeError('summary attribute must be string')
-            self.summary = summary
-            return
-        except AttributeError:
-            pass
-
-        # 2. Get summary at the API level
-        try:
-            summary = getattr(view, DjaggerAPIAttributes.SUMMARY.value)
-            if not isinstance(summary, str):
-                raise TypeError('summary attribute must be string')
-            self.summary = summary
-            return
-        except AttributeError:
-            pass
-
-        # 3. Get summary as the API Name
-        self.summary = view.__name__
-        return
-
-    def _extract_description(self, view : Type, http_method: HttpMethod):
-        """`description` attribute is initialized on the end point in the following priority:
-        1. Look for `description` the http method level e.g., `get_description`, `post_description` attribute
-        2. If not, look for `description` set at the api level e.g. `description` attribute (which would apply to all http methods unless 1. exists)
-        3. If not, set `description` to be the docstrings in the view.
-        """
-
-        # 1. Get description specific to endpoint http method
-        djagger_method_attributes = http_method.to_djagger_attribute()
-        try:
-            description = getattr(view, djagger_method_attributes.DESCRIPTION.value)
-            if not isinstance(description, str):
-                raise TypeError('description attribute must be string')
-            self.description = description
-            return
-        except AttributeError:
-            pass
-
-        # 2. Get description at the API level
-        try:
-            description = getattr(view, DjaggerAPIAttributes.DESCRIPTION.value)
-            if not isinstance(description, str):
-                raise TypeError('description attribute must be string')
-            self.description = description
-            return
-        except AttributeError:
-            pass
-
-        # 3. Get description as the API docstring
-        self.description = view.__doc__ if view.__doc__ else ""
-        return
-
-    def _extract_parameters(self, view : Type, http_method: HttpMethod):
-        ...
         return
 
     def _extract_request_body(self, view : Type, http_method: HttpMethod):
@@ -627,15 +628,50 @@ class Operation(BaseModel):
         
 
     def _extract_security(self, view : Type, http_method: HttpMethod):
-        ...
+
+        djagger_method_attributes : DjaggerMethodAttributes = http_method.to_djagger_attribute()
+
+        self.security = getattr(view, djagger_method_attributes.SECURITY.value, None)
+        if not self.security:
+            self.security = getattr(view, DjaggerAPIAttributes.SECURITY.value, None)
+
+        assert isinstance(self.servers, (List, type(None))), "security attribute needs to be a list of server objects"
+
+        if self.security:
+            for security in self.security:
+                assert isinstance(security, Dict), "security items need to be dict of list of strings"
+                for k, v in security.items():
+                    assert isinstance(k, str), "security requirement key needs to be a string"
+                    assert isinstance(v, List), "security requirement value needs to be list of strings"
+                    for m in v:
+                        assert isinstance(m, str), "security requirement value needs to be a list of strings"
+
         return
 
     def _extract_servers(self, view : Type, http_method: HttpMethod):
-        ...
+
+        djagger_method_attributes : DjaggerMethodAttributes = http_method.to_djagger_attribute()
+
+        self.servers = getattr(view, djagger_method_attributes.SERVERS.value, None)
+        if not self.servers:
+            self.servers = getattr(view, DjaggerAPIAttributes.SERVERS.value, None)
+
+        assert isinstance(self.servers, (List, type(None))), "servers attribute needs to be a list of server objects"
+
+        if self.servers:
+            self.servers = [ Server.parse_obj(server) for server in self.servers ]
+                
         return
 
     def _extract_deprecated(self, view : Type, http_method: HttpMethod):
-        ...
+
+        djagger_method_attributes : DjaggerMethodAttributes = http_method.to_djagger_attribute()
+
+        self.deprecated = getattr(view, djagger_method_attributes.DEPRECATED.value, None)
+        if not self.deprecated:
+            self.deprecated = getattr(view, DjaggerAPIAttributes.DEPRECATED.value, None)
+
+        assert isinstance(self.deprecated, (bool, type(None))), "deprecated attribute needs to be boolean"
         return
 
     @classmethod
@@ -658,6 +694,7 @@ class Operation(BaseModel):
             return None
 
         operation._extract_tags(view, http_method)
+        operation._extract_operation_id(view, http_method)
         operation._extract_summary(view, http_method)
         operation._extract_description(view, http_method)
         operation._extract_request_body(view, http_method)

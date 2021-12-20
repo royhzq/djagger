@@ -28,6 +28,11 @@ class DjaggerAPIAttributes(str, Enum):
     DESCRIPTION = 'description'
     CONSUMES = 'consumes'
     PRODUCES = 'produces'
+    OPERATION_ID = 'operation_id'
+    DEPRECATED = 'deprecated'
+    EXTERNAL_DOCS = 'external_docs'
+    SERVERS = 'servers'
+    SECURITY = 'security'
     DJAGGER_EXCLUDE = 'djagger_exclude' # If attr is present and True in view, skip documenting the view
 
 
@@ -73,6 +78,11 @@ class HttpMethod(str, Enum):
     PUT = 'put'
     OPTIONS = 'options'
     HEAD = 'head'
+
+    @classmethod
+    def values(cls):
+        """Returns list of http method strings [ 'get', 'post', ... ]"""
+        return [ member.value for member in  cls.__members__.values() ]
 
     def to_djagger_attribute(self) -> 'DjaggerMethodAttributes':
         """ Returns the corresponding DjaggerMethodAttribute depending on
