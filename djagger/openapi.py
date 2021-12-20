@@ -454,7 +454,7 @@ class Operation(BaseModel):
         if tags: 
             assert isinstance(tags, List), "Tags need to be a list of strings"
             for t in tags:
-                assert isinstance(t, str), "Tag items need to of string type"
+                assert isinstance(t, str), "Tag items needs to be string type"
 
         self.tags = tags
 
@@ -600,7 +600,6 @@ class Operation(BaseModel):
             responses = { 
                 '200': Response._from(response_schema)
             }
-
         # When attribute is a Serializer - assume 200 response only
         elif isinstance(response_schema, serializers.SerializerMetaclass):
             responses = {
@@ -695,6 +694,10 @@ class Operation(BaseModel):
 
         operation._extract_tags(view, http_method)
         operation._extract_operation_id(view, http_method)
+        operation._extract_deprecated(view, http_method)
+        operation._extract_security(view, http_method)
+        operation._extract_servers(view, http_method)
+        operation._extract_external_docs(view, http_method)
         operation._extract_summary(view, http_method)
         operation._extract_description(view, http_method)
         operation._extract_request_body(view, http_method)
@@ -717,9 +720,12 @@ class Path(BaseModel):
     head : Optional[Operation]
     patch : Optional[Operation]
     trace : Optional[Operation]
-    servers : Optional[List[Server]]
-    parameters : List[Union[Parameter, Reference]] = []
-    ref_ : Optional[str] # Allows for an external definition of this path item.
+    servers : Optional[List[Server]] # Not implemented - Done at operation level
+    parameters : List[Union[Parameter, Reference]] = [] # Not implemented - Done at operation level
+    ref_ : Optional[str] = Field(alias="$ref") # Not implemented
+
+    class Config:
+        allow_population_by_field_name = True
 
     @classmethod
     def create(cls, view : Type) -> 'Path':
@@ -727,8 +733,8 @@ class Path(BaseModel):
         from the Djagger attributes set in the view.
         """
         path = cls(
-            summary = getattr(view, 'summary', ''),
-            description = getattr(view, 'description', '')
+            summary = getattr(view, 'summary', None),
+            description = getattr(view, 'description', None)
         )
         
         if inspect.isclass(view):
@@ -739,9 +745,6 @@ class Path(BaseModel):
                         operation = Operation._from(view, http_method)
                         if not operation:
                             continue
-                        # if not operation.responses:
-                        #     warnings.warn(f"{view.__name__} does not have a response schema, will not be documented.")
-                        #     continue
 
                         setattr(path, http_method, operation)
 
@@ -888,7 +891,6 @@ class Document(BaseModel):
                 url=license_url
             ),
         )
-
         document = cls(
             openapi=openapi,
             info=info,
