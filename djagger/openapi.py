@@ -1,6 +1,7 @@
 """
 OpenAPI 3.0 Schema Objects
 ====================================
+For official specs, see https://swagger.io/specification/
 """
 
 from pydantic import BaseModel, Field, ValidationError
@@ -34,8 +35,8 @@ class ExternalDocs(BaseModel):
 
 class Tag(BaseModel):
     """ OpenAPI `tags` """
-    name : str = ""
-    description : str = ""
+    name : str
+    description : Optional[str]
     externalDocs : Optional[ExternalDocs]
 
 class Contact(BaseModel):
@@ -46,7 +47,7 @@ class Contact(BaseModel):
 
 class License(BaseModel):
     """ OpenAPI `license` object"""
-    name : Optional[str]
+    name : str
     url : Optional[str]
 
 class Info(BaseModel):
@@ -54,12 +55,12 @@ class Info(BaseModel):
     """OpenAPI document information"""
 
     title : str = "Djagger OpenAPI 3.0 Documentation"
-    description : str = " OpenAPI 3.0 Document Description"
-    termsOfService : str = ""
-    contact : Contact = Field({"email":"example@example.com"}, description="Dict of contact information")
+    description : str = "OpenAPI 3.0 Document Description"
+    termsOfService : Optional[str]
+    contact : Optional[Contact]
     license : Optional[License]
-    version : str = "1.0.5"
-    x_logo : Optional[Logo] = Field(alias="x-logo")
+    version : str = "1.0.0"
+    x_logo : Optional[Logo] = Field(alias="x-logo") #reDoc
 
     class Config:
         allow_population_by_field_name = True
@@ -77,12 +78,12 @@ class ServerVariable(BaseModel):
 
     enum : Optional[List[str]] 
     default : str
-    description : str
+    description : Optional[str]
 
 class Server(BaseModel):
 
     url : str
-    description : str = "'"
+    description : Optional[str]
     variables : Optional[Dict[str, ServerVariable]]
 
 class Reference(BaseModel):
@@ -105,31 +106,31 @@ class Reference(BaseModel):
                 return None
         return None
 
-    @staticmethod
-    def dereference(schema : Union[Dict, List], definitions: Dict) -> Dict:
+    @classmethod
+    def dereference(cls, schema : Union[Dict, List], definitions: Dict) -> Dict:
         """Recursively converts all references within a schema into the actual referenced object. 
         The resulting schema is the same one without any references.
         """
         if isinstance(schema, Dict):
             for k, v in schema.items():
-                ref = Reference.to_ref(v)
+                ref = cls.to_ref(v)
                 if ref:
                     ref_obj = definitions.get(ref.ref_name(), {})
-                    schema[k] = dereference(ref_obj, definitions)
+                    schema[k] = cls.dereference(ref_obj, definitions)
                     
                 elif isinstance(v, Dict) or isinstance(v, List):
-                    schema[k] = dereference(v, definitions)
+                    schema[k] = cls.dereference(v, definitions)
 
         if isinstance(schema, List):
             
             for i in range(len(schema)):
-                ref = Reference.to_ref(schema[i])
+                ref = cls.to_ref(schema[i])
                 if ref:
                     ref_obj = definitions.get(ref.ref_name(), {})
-                    schema[i] = dereference(ref_obj, definitions)
+                    schema[i] = cls.dereference(ref_obj, definitions)
                     
                 elif isinstance(schema[i], Dict) or isinstance(schema[i], List):
-                    schema[i] = dereference(schema[i], definitions)
+                    schema[i] = cls.dereference(schema[i], definitions)
 
         return schema
 
@@ -138,10 +139,19 @@ class Reference(BaseModel):
 
 class Example(BaseModel):
     
-    summary : str = ""
-    description : str = ""
-    value : Any
+    summary : Optional[str]
+    description : Optional[str]
+    value : Optional[Any]
     externalValue : Optional[str]
+
+class Link(BaseModel):
+
+    operationRef : Optional[str]
+    operationId : Optional[str]
+    parameters : Optional[Dict[str, Any]]
+    requestBody : Optional[Any]
+    description : Optional[str]
+    server : Optional[Server]
 
 
 class OAuthFlow(BaseModel):
@@ -165,7 +175,7 @@ SecurityRequirement = Dict[str, List[str]]
 class SecurityScheme(BaseModel):
     
     type_ : str = Field(alias="type")
-    desccription : str = ""
+    description : Optional[str]
     name : str
     in_ : str = Field(alias="in")
     scheme : str 
@@ -173,13 +183,15 @@ class SecurityScheme(BaseModel):
     flows : OAuthFlows 
     openIdConnectUrl : str
 
+Callback = Dict[str, 'Path']
+
 class Header(BaseModel):
     """ The Header Object follows the structure of the Parameter Object with the following changes:
     1. ``name`` MUST NOT be specified, it is given in the corresponding headers map.
     2. ``in`` MUST NOT be specified, it is implicitly in header.
     3. All traits that are affected by the location MUST be applicable to a location of header (for example, style).
     """
-    description : str = ""
+    description : Optional[str]
     required : bool = False
     deprecated : bool = False
     allowEmptyValue : bool = False
@@ -189,14 +201,15 @@ class Header(BaseModel):
     schema_ : Optional[Union[Dict, Reference]] = Field(alias="schema") # schema can take in a `.schema()` dict value from pydantic
     example : Optional[Any]
     examples : Optional[Dict[str, Union[Example, Reference]]]
+    content : Optional[Dict[str, 'MediaType']] # For more complex values - unused for now.
 
     class Config:
         allow_population_by_field_name = True
 
 class Encoding(BaseModel):
     
-    contentType : str
-    headers : Dict[str, Union[Header, Reference]]
+    contentType : Optional[str]
+    headers : Optional[Dict[str, Union[Header, Reference]]]
     style : Optional[str]
     explode : bool = False
     allowReserved : bool = False    
@@ -248,7 +261,7 @@ class MediaType(BaseModel):
 class Parameter(BaseModel):
     name : str
     in_ : str = Field(alias="in")
-    description : str = ""
+    description : Optional[str]
     required : bool = False
     deprecated : bool = False
     allowEmptyValue : bool = False
@@ -315,11 +328,13 @@ class RequestBody(BaseModel):
     content : Dict[str, MediaType] = {}
     required : bool = False
 
+
+
 class Response(BaseModel):
     description : str = ""
     headers : Optional[Dict[str, Union[Header, Reference]]]
     content : Optional[Dict[str, MediaType]]
-    # links : Optional[Dict] # Not supported yet
+    links : Optional[Dict[str, Union[Link, Reference]]]
 
     @classmethod
     def _from(cls, model : ModelMetaclass) -> 'Response':
@@ -345,19 +360,21 @@ class Response(BaseModel):
 
         return response
 
+Responses = Dict[str, Response]
+
 class Operation(BaseModel):
     
-    tags : List[str] = []
-    summary : str = ""
-    description : str = ""
+    tags : Optional[List[str]]
+    summary : Optional[str]
+    description : Optional[str]
     externalDocs : Optional[ExternalDocs]
     operationId : Optional[str]
     parameters : List[Union[Parameter, Reference]] = []
     requestBody : Optional[Union[RequestBody, Reference]]
-    responses: Dict[str, Response] = {} # Keys can be 'default' or http method '200', etc
-    callbacks : Optional[Dict[str, Dict[str, Union['Path', Reference]]]] # Circular reference with Path
+    responses: Responses = {} # Keys can be 'default' or http method '200', etc
+    callbacks : Optional[Dict[str, Union[Callback, Reference]]]
     deprecated : bool = False
-    security : Optional[SecurityRequirement]
+    security : Optional[List[SecurityRequirement]]
     servers : Optional[List[Server]]
 
     def _extract_operationId(self, view : Type, http_method: HttpMethod):
@@ -527,7 +544,7 @@ class Operation(BaseModel):
             self.requestBody = RequestBody(
                 description = request_body_attr.__doc__,
                 content={
-                    "application/json":MediaType._from(request_body_attr, component='requestBodies')
+                    "application/json":MediaType._from(request_body_attr)
                 }
             )
             return 
@@ -649,10 +666,12 @@ class Operation(BaseModel):
 
         return operation
 
+
+
 class Path(BaseModel):
 
-    summary : str = ""
-    description : str = ""
+    summary : Optional[str]
+    description : Optional[str]
     get : Optional[Operation]
     put : Optional[Operation]
     post : Optional[Operation]
@@ -663,6 +682,7 @@ class Path(BaseModel):
     trace : Optional[Operation]
     servers : Optional[List[Server]]
     parameters : List[Union[Parameter, Reference]] = []
+    ref_ : Optional[str] # Allows for an external definition of this path item.
 
     @classmethod
     def create(cls, view : Type) -> 'Path':
@@ -729,6 +749,8 @@ class Path(BaseModel):
         return path
 
 
+Paths = Dict[str, Path]
+
 class Components(BaseModel):
     # Replaces Definitions in Swagger 2.0
 
@@ -739,8 +761,8 @@ class Components(BaseModel):
     requestBodies : Dict[str, Union[RequestBody, Reference]] = {}
     headers : Dict[str, Union[Header, Reference]] = {}
     securitySchemes : Dict[str, Union[SecurityScheme, Reference]] = {}
-    # links : Dict[str, Union[,Reference]] = {}
-    callbacks : Dict[str, Dict[str, Dict[str, Union[Path, Reference]]]] = {}
+    links : Dict[str, Union[Link, Reference]] = {}
+    callbacks : Dict[str, Union[Callback, Reference]] = {}
 
     def merge(self, component : 'Components'):
         """Copy the contents of another ``Components`` instance and merge it into this instance"""
@@ -753,7 +775,7 @@ class Document(BaseModel):
     openapi : str = "3.0.0"
     info : Info = Info()
     servers : List[Server] = []
-    paths : Dict[str, Path] = {}
+    paths : Paths = {}
     components : Components = Components()
     security : List[SecurityRequirement] = []
     tags : List[Tag] = []

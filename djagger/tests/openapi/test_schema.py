@@ -18,7 +18,7 @@ def test_document():
         contact_email="example@example.com",
         contact_url="www.example.com"
     )
-    print(document)
+    # print(document)
 
 def test_media_type_from():
 
@@ -38,7 +38,7 @@ def test_media_type_from():
                 n=N(value3="value3")
             )
 
-    media = MediaType._from(M, component="schemas")
+    media = MediaType._from(M)
     assert media.dict(by_alias=True)
 
 def test_operation_from():
@@ -85,5 +85,5 @@ def test_path_create():
 
     path = Path.create(View)
 
-    print(path.dict(by_alias=True, exclude_none=True))
+    # print(path.dict(by_alias=True, exclude_none=True))
     assert path.dict(by_alias=True)
