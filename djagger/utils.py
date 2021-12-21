@@ -18,41 +18,7 @@ import warnings
 import re
 import uuid
 
-def djagger_method_enum_factory(name: str, method : str) -> Enum:
 
-    """ Factory generate DjaggerMethodAttributes enums that 
-    represent the allowable attributes for setting request and response schema objects
-    in a view for a particular http method.
-
-    Args:
-        name (str): The name of the Enum class that will be created. 
-        method (str): The http method name i.e. 'get', 'post', 'put', 'patch'. 
-                      `method` will be prefixed to all the enum values upon creation.
-    """
-    
-    attrs = {
-        "PATH_PARAMS" : "_path_params",
-        "QUERY_PARAMS" : "_query_params",
-        "HEADER_PARAMS" : "_header_params",
-        "COOKIE_PARAMS" : "_cookie_params",
-        "BODY_PARAMS" : "_body_params",
-        "RESPONSE_SCHEMA" : "_response_schema",
-        "SUMMARY" : "_summary",
-        "DESCRIPTION" : "_description",
-        "OPERATION_ID" : "_operation_id",
-        "TAGS" : "_tags",
-        "CONSUMES" : "_consumes",
-        "PRODUCES" : "_produces",
-        "OPERATION_ID": "_operation_id",
-        "DEPRECATED":"_deprecated",
-        "EXTERNAL_DOCS":"_external_docs",
-        "SERVERS":"_servers",
-        "SECURITY":"_security",
-        "DJAGGER_EXCLUDE": "_djagger_exclude"
-    }
-    prefixed_attrs = { k: method + v for k, v in attrs.items() } 
-
-    return Enum(name, prefixed_attrs)
 
 def get_app_name(module : str) -> str:
     """ Given the value of ``__module__`` dunder attr, return the

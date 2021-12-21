@@ -2,9 +2,8 @@
 Enums
 =====
 """
-from typing import Union, List
+from typing import Union, List, Any, Type
 from enum import Enum
-from .utils import djagger_method_enum_factory
 
 DJAGGER_HTTP_METHODS = 'djagger_http_methods' # FBV attribute name for http methods used in the FBV
 
@@ -35,16 +34,52 @@ class DjaggerAPIAttributes(str, Enum):
     SECURITY = 'security'
     DJAGGER_EXCLUDE = 'djagger_exclude' # If attr is present and True in view, skip documenting the view
 
+    def from_view(self, view: Type, http_method : 'HttpMethod') -> Any:
+
+        """ Given a view, and a http method, extracts the attribute from the view starting at the operation-level attribute i.e. get_body_params.
+        If it does not exist, try to extract at the API-level attribute i.e. body_params.
+        If the attribute still does not exist, return None.
+
+        Example::
+            >>>DjaggerAPIAttributes.OPERATION_ID.from_view(view, HttpMethod.GET)
+            "get_operation_id"
+
+        """
+        operation_attr_value = f"{http_method.value}_{self.value}" # e.g. get_body_params
+        return getattr(view, operation_attr_value, getattr(view, self.value, None))
+
+
+    @classmethod
+    def items(cls):
+        """ List of tuples of the enum attr names and the corresponding value"""
+        return [ (k, v.value) for k, v in cls.__members__.items() ]
+
+    @classmethod
+    def operation_factory(cls, name: str, method : str) -> Enum:
+
+        """ Factory generate DjaggerMethodAttributes enums that 
+        represent the allowable attributes for setting request and response schema objects
+        in a view for a particular http method.
+
+        Args:
+            name (str): The name of the Enum class that will be created. 
+            method (str): The http method name i.e. 'get', 'post', 'put', 'patch'. 
+                        `method` will be prefixed to all the enum values upon creation.
+        """
+    
+        prefixed_attrs = { k: f"{method}_{v}" for k, v in cls.items() } 
+
+        return Enum(name, prefixed_attrs)
 
 ### Enums of endpoint attributes available for each http method ###
 
-DjaggerGetAttributes = djagger_method_enum_factory("DjaggerGetAttributes", "get")
-DjaggerPostAttributes = djagger_method_enum_factory("DjaggerPostAttributes", "post")
-DjaggerPatchAttributes = djagger_method_enum_factory("DjaggerPatchAttributes", "patch")
-DjaggerDeleteAttributes = djagger_method_enum_factory("DjaggerDeleteAttributes", "delete")
-DjaggerPutAttributes = djagger_method_enum_factory("DjaggerPutAttributes", "put")
-DjaggerOptionsAttributes = djagger_method_enum_factory("DjaggerOptionsAttributes", "options")
-DjaggerHeadAttributes = djagger_method_enum_factory("DjaggerHeadAttributes", "head")
+DjaggerGetAttributes = DjaggerAPIAttributes.operation_factory("DjaggerGetAttributes", "get")
+DjaggerPostAttributes = DjaggerAPIAttributes.operation_factory("DjaggerPostAttributes", "post")
+DjaggerPatchAttributes = DjaggerAPIAttributes.operation_factory("DjaggerPatchAttributes", "patch")
+DjaggerDeleteAttributes = DjaggerAPIAttributes.operation_factory("DjaggerDeleteAttributes", "delete")
+DjaggerPutAttributes = DjaggerAPIAttributes.operation_factory("DjaggerPutAttributes", "put")
+DjaggerOptionsAttributes = DjaggerAPIAttributes.operation_factory("DjaggerOptionsAttributes", "options")
+DjaggerHeadAttributes = DjaggerAPIAttributes.operation_factory("DjaggerHeadAttributes", "head")
 
 ###
 
