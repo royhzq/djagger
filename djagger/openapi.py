@@ -12,9 +12,8 @@ from .utils import base_model_set_examples, extract_unique_schema, get_url_patte
 
 from .enums import (
     HttpMethod, 
-    ParameterLocation, 
-    DjaggerAPIAttributes,
-    DjaggerMethodAttributes,
+    ViewAttributes,
+    DjaggerAttributeEnumType,
     DJAGGER_HTTP_METHODS,
 )
 
@@ -277,16 +276,17 @@ class Parameter(BaseModel):
         allow_population_by_field_name = True
 
     @classmethod
-    def to_parameters(cls, model : ModelMetaclass, attr : DjaggerMethodAttributes) -> List['Parameter']:
+    def to_parameters(cls, model : ModelMetaclass, attr : DjaggerAttributeEnumType) -> List['Parameter']:
         """ Converts the fields of a pydantic model to list of Parameter objects for use in generating request parameters.
         All attribute names ending in '_params' are relevant here. Non parameter object attributes should not be passed
         """
         params = []
-        if not isinstance(attr, DjaggerMethodAttributes.__args__):
-            raise TypeError("Parameter.to_parameters requires attr to be of type `DjaggerMethodAttributes`")
-        
+
         if "_params" not in attr.value:
             raise AttributeError("`to_parameters` only accepts parameter attributes ending with '_param'")
+
+        if not isinstance(attr, DjaggerAttributeEnumType):
+            raise TypeError("attr must be an enum of DjaggerAttributeEnumType type")
 
         if not isinstance(model, ModelMetaclass):
             raise TypeError("Parameter object must be pydantic.main.ModelMetaclass type")
@@ -309,7 +309,7 @@ class Parameter(BaseModel):
             param = cls(
                 name=name,
                 description=props.get('description'),
-                in_=ParameterLocation.from_method_attribute(attr).value,
+                in_=attr.location(),
                 required=props.get('required'),
                 deprecated=props.get('deprecated'),
                 allowReserved=props.get('allowReserved'),
@@ -376,61 +376,38 @@ class Operation(BaseModel):
     security : Optional[List[SecurityRequirement]]
     servers : Optional[List[Server]]
 
+        
+
     def _extract_operation_id(self, view : Type, http_method: HttpMethod):
 
-        djagger_method_attributes : DjaggerMethodAttributes = http_method.to_djagger_attribute()
+        operation_id = ViewAttributes.from_view(view, 'operation_id', http_method)
+        assert isinstance(operation_id, (str, type(None))), "operation_id must be string type"
+        self.operationId = operation_id
 
-        self.operationId = getattr(view, djagger_method_attributes.OPERATION_ID.value, None)
-        if not self.operationId:
-            self.operationId = getattr(view, DjaggerAPIAttributes.OPERATION_ID.value, None)
-        
-        assert isinstance(self.operationId, (str, type(None))), "operationId attribute needs to be string"
-
-        return
 
     def _extract_external_docs(self, view : Type, http_method: HttpMethod):
 
-        djagger_method_attributes : DjaggerMethodAttributes = http_method.to_djagger_attribute()
-
-        self.externalDocs = getattr(view, djagger_method_attributes.EXTERNAL_DOCS.value, None)
-        if not self.externalDocs:
-            self.externalDocs = getattr(view, DjaggerAPIAttributes.EXTERNAL_DOCS.value, None)
-
+        self.externalDocs = ViewAttributes.from_view(view, 'external_docs', http_method)
         assert isinstance(self.externalDocs, (Dict, type(None))), "externalDocs attribute needs to be a dict"
 
         if self.externalDocs:
             self.externalDocs = ExternalDocs.parse_obj(self.externalDocs)
 
-        return
-
     def _extract_parameters(self, view : Type, http_method: HttpMethod):
         """ Helper to initialize request `parameters` from a View for a given http method
         """
 
         self.parameters = []
-        djagger_method_attributes : DjaggerMethodAttributes = http_method.to_djagger_attribute()
 
-        for attr in djagger_method_attributes.__members__.values():
+        for attr in ViewAttributes.api.__members__.values():
             
-            if "_params" not in attr.value:
+            if "_params" not in attr:
                 # only consider relevant for parameter attributes - attr name ending in '_params'
                 continue
 
-            if hasattr(view, attr.value):
-
-                request_schema = getattr(view, attr.value)
-
-            else:
-                # If method-level param attribute does not exist e.g. get_cookie_params
-                # Then check if the corresponding API-level param attribute is set e.g. cookie_params and use that as fallback
-                
-                api_level_attr_value = "_".join(attr.value.split("_")[1:]) # Remove http method prefix i.e. 'get_', '_post'
-
-                if not hasattr(view, api_level_attr_value):
-                    # skip if View does not contain even the api-level attribute
-                    continue
-
-                request_schema = getattr(view, api_level_attr_value)
+            request_schema = ViewAttributes.from_view(view, attr.value, http_method)
+            if not request_schema:
+                continue
 
             # Converting serializers to pydantic models
             if isinstance(request_schema, serializers.SerializerMetaclass):
@@ -438,94 +415,40 @@ class Operation(BaseModel):
 
             self.parameters += Parameter.to_parameters(request_schema, attr)
 
-        return
-
     def _extract_tags(self, view : Type, http_method: HttpMethod):
 
-        djagger_method_attributes = http_method.to_djagger_attribute()
-
-        tags = getattr(view, djagger_method_attributes.TAGS.value, None)
+        tags = ViewAttributes.from_view(view, 'tags', http_method)
 
         if not tags:
-            tags = getattr(view, DjaggerAPIAttributes.TAGS.value, None)
-        if not tags:
-            tags = [view.__module__.split(".")[0]]
-        
-        if tags: 
-            assert isinstance(tags, List), "Tags need to be a list of strings"
-            for t in tags:
-                assert isinstance(t, str), "Tag items needs to be string type"
+            tags = [view.__module__.split(".")[0]] # Set tags as the app module name of the API as fallback
 
-        self.tags = tags
-
-        return
+        if tags:
+            assert isinstance(tags, List), "tags attribute must be a list of strings"
+            self.tags = tags
 
     def _extract_summary(self, view : Type, http_method: HttpMethod):
 
-        djagger_method_attributes : DjaggerMethodAttributes = http_method.to_djagger_attribute()
+        summary = ViewAttributes.from_view(view, 'summary', http_method)
 
-        self.summary = getattr(view, djagger_method_attributes.SUMMARY.value, None)
-        if not self.summary:
-            self.summary = getattr(view, DjaggerAPIAttributes.SUMMARY.value, None)
-        if not self.summary:
-            self.summary = view.__name__
+        if not summary:
+            summary = view.__name__     
 
-        assert isinstance(self.summary, (str, type(None))), "summary attribute needs to be string"
-
-        return
+        if summary:
+            assert isinstance(summary, str), "summary must be string type"
+            self.summary = summary
 
 
     def _extract_description(self, view : Type, http_method: HttpMethod):
 
-        djagger_method_attributes : DjaggerMethodAttributes = http_method.to_djagger_attribute()
+        description = ViewAttributes.from_view(view, 'description', http_method)
 
-        self.description = getattr(view, djagger_method_attributes.DESCRIPTION.value, None)
-        if not self.description:
-            self.description = getattr(view, DjaggerAPIAttributes.DESCRIPTION.value, None)
-        if not self.description:
-            self.description = view.__doc__
+        if not description:
+            description = view.__doc__   
 
-        assert isinstance(self.description, (str, type(None))), "description attribute needs to be string"
+        if description:
+            assert isinstance(description, str), "description must be string type"
+            self.description = description
 
-        return
-
-
-    def _extract_parameters(self, view : Type, http_method: HttpMethod):
-        """ Helper to initialize request `parameters` from a View for a given http method
-        """
-
-        self.parameters = []
-        djagger_method_attributes : DjaggerMethodAttributes = http_method.to_djagger_attribute()
-
-        for attr in djagger_method_attributes.__members__.values():
-            
-            if "_params" not in attr.value:
-                # only consider relevant for parameter attributes - attr name ending in '_params'
-                continue
-
-            if hasattr(view, attr.value):
-
-                request_schema = getattr(view, attr.value)
-
-            else:
-                # If method-level param attribute does not exist e.g. get_cookie_params
-                # Then check if the corresponding API-level param attribute is set e.g. cookie_params and use that as fallback
-                
-                api_level_attr_value = "_".join(attr.value.split("_")[1:]) # Remove http method prefix i.e. 'get_', '_post'
-
-                if not hasattr(view, api_level_attr_value):
-                    # skip if View does not contain even the api-level attribute
-                    continue
-
-                request_schema = getattr(view, api_level_attr_value)
-
-            # Converting serializers to pydantic models
-            if isinstance(request_schema, serializers.SerializerMetaclass):
-                request_schema = SerializerConverter(s=request_schema()).to_model()
-
-            self.parameters += Parameter.to_parameters(request_schema, attr)
-
-        return
 
     def _extract_request_body(self, view : Type, http_method: HttpMethod):
         """ Extracts ``requestBody`` from the ``<http_method>_BODY_PARAMS`` attribute from the view.
@@ -688,7 +611,7 @@ class Operation(BaseModel):
         )
 
         # Exclude at the method-level if `<http_method>_djagger_exclude` is True
-        exclude = getattr(view, http_method.to_djagger_attribute().DJAGGER_EXCLUDE.value, False)
+        exclude = ViewAttributes.from_view(view, 'djagger_exclude', http_method)
         if exclude:
             return None
 

@@ -3,7 +3,7 @@ Decorators
 ==========
 """
 from typing import List
-from .enums import HttpMethod, DjaggerViewAttributeList, DJAGGER_HTTP_METHODS
+from .enums import HttpMethod, ViewAttributes, DJAGGER_HTTP_METHODS
 
 def schema(methods : List[str], **attrs):
     """ Decorator for function based views to set Djagger attributes into the view.
@@ -25,7 +25,7 @@ def schema(methods : List[str], **attrs):
     def decorator(f):
 
         for k, v in attrs.items():
-            if k not in DjaggerViewAttributeList:
+            if k not in ViewAttributes.attr_list:
                 raise TypeError(f'schema decorator got an unexpected keyword {k}')
             setattr(f, k, v)
 

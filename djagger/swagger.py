@@ -12,9 +12,8 @@ from .utils import base_model_set_examples, get_url_patterns, extract_unique_sch
 from .serializers import SerializerConverter
 from .enums import (
     HttpMethod, 
-    ParameterLocation, 
-    DjaggerAPIAttributes,
-    DjaggerMethodAttributes,
+    ViewAttributes,
+    DjaggerAttributeEnumType,
     DJAGGER_HTTP_METHODS,
 )
 
@@ -92,20 +91,20 @@ class Parameter(BaseModel):
 
 
     @classmethod
-    def to_parameters(cls, schema : ModelMetaclass, attr : DjaggerMethodAttributes) -> List['Parameter']:
+    def to_parameters(cls, schema : ModelMetaclass, attr : DjaggerAttributeEnumType) -> List['Parameter']:
         """ Converts the fields of a pydantic model to list of Parameter objects for use in generating request parameters.
         All attribute names ending in '_params' are relevant here. Non parameter object attributes should not be passed
         """
         params = []
-        if not isinstance(attr, DjaggerMethodAttributes.__args__):
-            raise TypeError("Parameter.to_parameters requires attr to be of type `DjaggerMethodAttributes`")
-
         if attr == attr.RESPONSE_SCHEMA:
             # response schemas not considered for request parameters
             return params
         
         if "_params" not in attr.value:
             raise AttributeError("`to_parameters` only accepts parameter attributes ending with '_param'")
+
+        if not isinstance(attr, DjaggerAttributeEnumType):
+            raise TypeError("attr must be an enum of DjaggerAttributeEnumType type")
 
         if not isinstance(schema, ModelMetaclass):
             raise TypeError("Parameter object must be pydantic.main.ModelMetaclass type")
@@ -135,7 +134,7 @@ class Parameter(BaseModel):
             param = cls(
                 name=name,
                 description=props.get('description', ""),
-                in_=ParameterLocation.from_method_attribute(attr).value,
+                in_=attr.location(),
                 required=props.get('required', True),
                 type_=props.get("type", "")
             )
@@ -187,26 +186,10 @@ class EndPoint(BaseModel):
         2. If not, look for `consumes` set at the api level e.g. `consumes` attribute (which would apply to all http methods unless 1. exists)
         """
 
-        # 1. Get summary specific to endpoint http method
-        djagger_method_attributes = http_method.to_djagger_attribute()
-        try:
-            consumes = getattr(view, djagger_method_attributes.CONSUMES.value)
-            if not isinstance(consumes, List):
-                raise TypeError('consumes attribute must be a list')
+        consumes = ViewAttributes.from_view(view, "consumes", http_method)
+        if consumes:
+            assert isinstance(consumes, List), "consumes attribute must be a list"
             self.consumes = consumes
-            return
-        except AttributeError as e:
-            pass
-
-        # 2. Get `consumes` at the API level
-        try:
-            consumes = getattr(view, DjaggerAPIAttributes.CONSUMES.value)
-            if not isinstance(consumes, List):
-                raise TypeError('consumes attribute must be a list')
-            self.consumes = consumes
-            return
-        except AttributeError:
-            pass
 
 
     def _extract_produces(self, view : Type, http_method: HttpMethod):
@@ -216,26 +199,10 @@ class EndPoint(BaseModel):
         2. If not, look for `produces` set at the api level e.g. `produces` attribute (which would apply to all http methods unless 1. exists)
         """
 
-        # 1. Get summary specific to endpoint http method
-        djagger_method_attributes = http_method.to_djagger_attribute()
-        try:
-            produces = getattr(view, djagger_method_attributes.PRODUCES.value)
-            if not isinstance(produces, List):
-                raise TypeError('produces attribute must be a list')
+        produces = ViewAttributes.from_view(view, "produces", http_method)
+        if produces:
+            assert isinstance(produces, List), "produces attribute must be a list"
             self.produces = produces
-            return
-        except AttributeError as e:
-            pass
-
-        # 2. Get `produces` at the API level
-        try:
-            produces = getattr(view, DjaggerAPIAttributes.PRODUCES.value)
-            if not isinstance(produces, List):
-                raise TypeError('produces attribute must be a list')
-            self.produces = produces
-            return
-        except AttributeError:
-            pass
 
     def _extract_summary(self, view : Type, http_method: HttpMethod):
         """`summary` attribute is initialized on the end point in the following priority:
@@ -244,30 +211,14 @@ class EndPoint(BaseModel):
         3. If not, set `summary` to be the API class name.
         """
 
-        # 1. Get summary specific to endpoint http method
-        djagger_method_attributes = http_method.to_djagger_attribute()
-        try:
-            summary = getattr(view, djagger_method_attributes.SUMMARY.value)
-            if not isinstance(summary, str):
-                raise TypeError('summary attribute must be string')
-            self.summary = summary
-            return
-        except AttributeError:
-            pass
+        summary = ViewAttributes.from_view(view, 'summary', http_method)
 
-        # 2. Get summary at the API level
-        try:
-            summary = getattr(view, DjaggerAPIAttributes.SUMMARY.value)
-            if not isinstance(summary, str):
-                raise TypeError('summary attribute must be string')
-            self.summary = summary
-            return
-        except AttributeError:
-            pass
+        if not summary:
+            summary = view.__name__     
 
-        # 3. Get summary as the API Name
-        self.summary = view.__name__
-        return
+        if summary:
+            assert isinstance(summary, str), "summary must be string type"
+            self.summary = summary
 
     def _extract_description(self, view : Type, http_method: HttpMethod):
         """`description` attribute is initialized on the end point in the following priority:
@@ -276,30 +227,13 @@ class EndPoint(BaseModel):
         3. If not, set `description` to be the docstrings in the view.
         """
 
-        # 1. Get description specific to endpoint http method
-        djagger_method_attributes = http_method.to_djagger_attribute()
-        try:
-            description = getattr(view, djagger_method_attributes.DESCRIPTION.value)
-            if not isinstance(description, str):
-                raise TypeError('description attribute must be string')
-            self.description = description
-            return
-        except AttributeError:
-            pass
+        description = ViewAttributes.from_view(view, 'description', http_method)
 
-        # 2. Get description at the API level
-        try:
-            description = getattr(view, DjaggerAPIAttributes.DESCRIPTION.value)
-            if not isinstance(description, str):
-                raise TypeError('description attribute must be string')
-            self.description = description
-            return
-        except AttributeError:
-            pass
+        if not description:
+            description = view.__doc__   
 
-        # 3. Get description as the API docstring
-        self.description = view.__doc__ if view.__doc__ else ""
-        return
+        assert isinstance(description, (str, type(None))), "description must be string type"
+        self.description = description
 
     def _extract_tags(self, view : Type, http_method: HttpMethod):
         """ `tags` attribute is initialized on the end point in the following priority:
@@ -308,62 +242,30 @@ class EndPoint(BaseModel):
         3. If not, set the tags to be default as the app module name in which the api resides in.
         """
 
-        # 1. Get tags specific to endpoint http method
-        djagger_method_attributes = http_method.to_djagger_attribute()
-        try:
-            tags = getattr(view, djagger_method_attributes.TAGS.value)
-            if not isinstance(tags, List):
-                raise TypeError('tags attribute must be a list of strings')
+        tags = ViewAttributes.from_view(view, 'tags', http_method)
+
+        if not tags:
+            tags = [view.__module__.split(".")[0]] # Set tags as the app module name of the API as fallback
+
+        if tags:
+            assert isinstance(tags, List), "tags attribute must be a list of strings"
             self.tags = tags
-            return
-
-        except AttributeError:
-            pass
-
-        # 2. Get tags at the API level
-        try:
-            tags = getattr(view, DjaggerAPIAttributes.TAGS.value)
-            if not isinstance(tags, List):
-                raise TypeError('tags attribute must be a list of strings')
-            self.tags = tags
-            return
-        except AttributeError:
-            pass
-
-        # 3. Set tags as the app module name of the API
-        tags = [view.__module__.split(".")[0]]
-
-        self.tags = tags
-        return
 
     def _extract_parameters(self, view : Type, http_method: HttpMethod):
         """ Helper to initialize request `parameters` from a View for a given http method
         """
 
         self.parameters = []
-        djagger_method_attributes : DjaggerMethodAttributes = http_method.to_djagger_attribute()
 
-        for attr in djagger_method_attributes.__members__.values():
+        for attr in ViewAttributes.api.__members__.values():
             
-            if "_params" not in attr.value:
+            if "_params" not in attr:
                 # only consider relevant for parameter attributes - attr name ending in '_params'
                 continue
 
-            if hasattr(view, attr.value):
-
-                request_schema = getattr(view, attr.value)
-
-            else:
-                # If method-level param attribute does not exist e.g. get_cookie_params
-                # Then check if the corresponding API-level param attribute is set e.g. cookie_params and use that as fallback
-                
-                api_level_attr_value = "_".join(attr.value.split("_")[1:]) # Remove http method prefix i.e. 'get_', '_post'
-
-                if not hasattr(view, api_level_attr_value):
-                    # skip if View does not contain even the api-level attribute
-                    continue
-
-                request_schema = getattr(view, api_level_attr_value)
+            request_schema = ViewAttributes.from_view(view, attr.value, http_method)
+            if not request_schema:
+                continue
 
             # Converting serializers to pydantic models
             if isinstance(request_schema, serializers.SerializerMetaclass):
@@ -371,7 +273,6 @@ class EndPoint(BaseModel):
 
             self.parameters += Parameter.to_parameters(request_schema, attr)
 
-        return
 
     def _extract_responses(self, view : Type, http_method : HttpMethod):
         """ Helper to initialize `responses` from a view class and returns responses dict for EndPoint
@@ -381,13 +282,7 @@ class EndPoint(BaseModel):
 
         responses = {}
 
-        schema_attr : DjaggerMethodAttributes = http_method.to_djagger_attribute().RESPONSE_SCHEMA
-        response_schema = getattr(view, schema_attr.value, None)
-
-        if response_schema == None:
-            # Look for the api-level response schema as fallback
-            # E.g. if "post_response_schema" not found, look for "response_schema" attr instead
-            response_schema = getattr(view, DjaggerAPIAttributes.RESPONSE_SCHEMA.value, None)
+        response_schema = ViewAttributes.from_view(view, 'response_schema', http_method)
 
         # When attribute is a pydantic model - assume 200 response only
         if isinstance(response_schema, ModelMetaclass):
@@ -431,7 +326,7 @@ class EndPoint(BaseModel):
         )
 
         # Exclude at the method-level if `<http_method>_djagger_exclude` is True
-        exclude = getattr(view, http_method.to_djagger_attribute().DJAGGER_EXCLUDE.value, False)
+        exclude = ViewAttributes.from_view(view, 'djagger_exclude', http_method)
         if exclude:
             return None
 
@@ -608,10 +503,9 @@ class Document(BaseModel):
             except AttributeError:
                 view = url_pattern.callback # Function-based View / ViewSet 
             
-            if hasattr(view, DjaggerAPIAttributes.DJAGGER_EXCLUDE.value):
-                # Exclude generating docs for views with `djagger_exclude=True`
-                if view.djagger_exclude:
-                    continue
+            exclude = ViewAttribute.from_view(view, 'djagger_exclude', None)
+            if exclude:
+                continue
             
             path = Path.create(view)
 
