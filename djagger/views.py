@@ -3,7 +3,7 @@ from django.http import JsonResponse, HttpRequest, HttpResponse
 from django.conf import settings
 
 from .decorators import schema
-from .swagger import Document as SwaggerDoc
+from .openapi import Document as OpenAPIDoc
 
 import os
 
@@ -12,25 +12,24 @@ def open_api_json(request : HttpRequest):
 
     """ View for auto generated OpenAPI JSON document 
     """
-    document = SwaggerDoc.generate(
+    document = OpenAPIDoc.generate(
         app_names = getattr(settings, 'DJAGGER_APP_NAMES', []),
+        tags = getattr(settings, 'DJAGGER_TAGS', []),
+        openapi = getattr(settings, 'DJAGGER_OPENAPI', "3.0.0"),
+        version = getattr(settings, 'DJAGGER_VERSION', "1.0.0"),
+        servers = getattr(settings, 'DJAGGER_SERVERS', []),
+        security = getattr(settings, 'DJAGGER_SECURITY', []),
+        title = getattr(settings, 'DJAGGER_TITLE', "Djagger OpenAPI Documentation"),
         description = getattr(settings, 'DJAGGER_DESCRIPTION', ""),
+        terms_of_service = getattr(settings, 'DJAGGER_TERMS_OF_SERVICE', ""),
         contact_name = getattr(settings, 'DJAGGER_CONTACT_NAME', ""),
         contact_email = getattr(settings, 'DJAGGER_CONTACT_EMAIL', ""),
         contact_url = getattr(settings, 'DJAGGER_CONTACT_URL', ""),
         license_name = getattr(settings, 'DJAGGER_LICENSE_NAME', ""),
         license_url = getattr(settings, 'DJAGGER_LICENSE_URL', ""),
-        basePath = getattr(settings, 'DJAGGER_BASEPATH', ""),
-        tags = getattr(settings, 'DJAGGER_TAGS', []),
-        version = getattr(settings, 'DJAGGER_VERSION', "1.0.5"),
-        title = getattr(settings, 'DJAGGER_TITLE', "Djagger OpenAPI Documentation"),
-        schemes = getattr(settings, 'DJAGGER_SCHEMES', ['http','https']),
-        swagger = getattr(settings, 'DJAGGER_SWAGGER', "2.0"),
-        host = getattr(settings, 'DJAGGER_HOST', "example.org"),
-        terms_of_service = getattr(settings, 'DJAGGER_TERMS_OF_SERVICE', ""),
         x_tag_groups = getattr(settings, 'DJAGGER_X_TAG_GROUPS', [])
     )
-
+    
     response = JsonResponse(document)
     response['Cache-Control'] = "no-cache, no-store, must-revalidate"
     return response

@@ -727,6 +727,7 @@ class Document(BaseModel):
         openapi = "3.0.0",
         version = "1.0.0",
         servers : List[Server] = [],
+        security : List[SecurityRequirement] = [],
         title = "Djagger OpenAPI Documentation",
         description = "",
         terms_of_service = "",
@@ -751,10 +752,8 @@ class Document(BaseModel):
             except AttributeError:
                 view = url_pattern.callback # Function-based View / ViewSet 
             
-            if hasattr(view, DjaggerAPIAttributes.DJAGGER_EXCLUDE.value):
-                # Exclude generating docs for views with `djagger_exclude=True`
-                if view.djagger_exclude:
-                    continue
+            if ViewAttributes.from_view(view, 'djagger_exclude'):
+                continue
             
             path = Path.create(view)
 
