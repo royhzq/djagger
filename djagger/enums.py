@@ -16,6 +16,7 @@ class HttpMethod(str, Enum):
     PUT = 'put'
     OPTIONS = 'options'
     HEAD = 'head'
+    TRACE = 'trace'
 
     @classmethod
     def values(cls):

@@ -636,10 +636,17 @@ class Path(BaseModel):
         )
         
         if inspect.isclass(view):
-            # For CBV or DRF API, check for methods by looking for get(), post(), patch(), put(), delete() methods
+            # For CBV or DRF API, check for methods by looking for get(), post(), patch(), ... methods
             for http_method in HttpMethod.__members__.values():
                 if hasattr(view, http_method):
                     if callable(getattr(view, http_method)):
+                        
+                        if http_method == HttpMethod.OPTIONS:
+                            # Special handling of OPTIONS method documentation as it is automatically present in every CBV
+                            # Only auto-document OPTIONS if a specific ``options_response_schema`` attribute is detected.
+                            if not hasattr(view, 'options_response_schema'):
+                                continue
+
                         operation = Operation._from(view, http_method)
                         if not operation:
                             continue
@@ -762,6 +769,9 @@ class Document(BaseModel):
                 getattr(path, 'post', None) or \
                 getattr(path, 'put', None) or \
                 getattr(path, 'patch', None) or \
+                getattr(path, 'options', None) or \
+                getattr(path, 'trace', None) or \
+                getattr(path, 'head', None) or \
                 getattr(path, 'delete', None):
 
                     paths["/" + route] = path
