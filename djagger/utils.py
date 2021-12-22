@@ -8,9 +8,11 @@ from django.apps import apps
 from django.urls import URLPattern, URLResolver, get_resolver
 from django.urls.resolvers import RegexPattern, RoutePattern, _route_to_regex
 from rest_framework import fields, serializers
-from typing import List, Type, Callable
+from typing import List, Type, Callable, Any
 from pydantic import create_model
-from pydantic.main import ModelMetaclass # Abstract classes derived from BaseModel
+from pydantic.main import ModelMetaclass, ModelField
+from pydantic.fields import UndefinedType
+from pydantic.schema import get_flat_models_from_model, get_model_name_map, field_schema
 from typing import List, Dict, Optional, Union, Tuple
 from decimal import Decimal
 from enum import Enum
@@ -344,6 +346,31 @@ def schema_from_serializer(s : serializers.Serializer) -> ModelMetaclass:
     model = create_model(name, **create_model_args, __config__=Config)
         
     return model
+
+def model_field_schemas(model : ModelMetaclass) -> List[Tuple[Dict[str, Any], Dict[str, Any]]]:
+    """ Returns list of tuple with a JSON Schema for it as the first item.
+    Also return a dictionary of definitions with models as keys and their schemas as values.
+    Refer to ``pydantic.fields.field_schema`` for reference
+    """  
+    schemas = []
+    flat_models = get_flat_models_from_model(model)
+    model_name_map = get_model_name_map(flat_models)
+
+    for model_field in model.__fields__.values():
+
+        schema, definitions, _= field_schema(
+            field=model_field,
+            by_alias=True,
+            model_name_map=model_name_map,
+            ref_template="#/definitions/{model}"
+        )
+        schema['title'] = model_field.alias
+        schemas.append((schema, definitions))
+
+    return schemas
+
+
+    
 
 # def extract_unique_schema(model : ModelMetaclass) -> dict:
 #     """ Calls the ``.schema()`` method with a custom ``ref_template`` containing uuid4.

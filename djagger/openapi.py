@@ -8,7 +8,7 @@ from pydantic import BaseModel, Field, ValidationError
 from pydantic.main import ModelMetaclass
 from rest_framework import serializers
 from typing import Optional, List, Dict, Union, Type, Any
-from .utils import schema_set_examples, get_url_patterns
+from .utils import schema_set_examples, get_url_patterns, model_field_schemas
 
 from .enums import (
     HttpMethod, 
@@ -276,7 +276,8 @@ class Parameter(BaseModel):
 
     @classmethod
     def to_parameters(cls, model : ModelMetaclass, attr : DjaggerAttributeEnumType) -> List['Parameter']:
-        """ Converts the fields of a pydantic model to list of Parameter objects for use in generating request parameters.
+        """ Converts the fields of a pydantic model to list of Parameter objects for use in generating request parameters,
+        with each field having a separate schema.
         All attribute names ending in '_params' are relevant here. Non parameter object attributes should not be passed
         """
         params = []
@@ -288,7 +289,7 @@ class Parameter(BaseModel):
             raise TypeError("attr must be an enum of DjaggerAttributeEnumType type")
 
         if not isinstance(model, ModelMetaclass):
-            raise TypeError("Parameter object must be pydantic.main.ModelMetaclass type")
+            raise TypeError(f"Parameter object must be pydantic.main.ModelMetaclass type. Got {type(model)}")
 
         if attr == attr.BODY_PARAMS:
             # Request body handled by extract_request_body()
@@ -297,31 +298,30 @@ class Parameter(BaseModel):
         # Handle parameters - path / query / header/ cookie 
         # with each field as a separate parameter in the list of parameters
         
-        schema = model.schema()
-        schema = schema_set_examples(schema, model)
-        definitions = schema.pop('definitions', {})
-        if definitions:
-           schema = Reference.dereference(schema, definitions)
 
-        properties = schema.get('properties',{})
+        schemas = model_field_schemas(model)
 
-        for name, props in properties.items():
+        for schema, definitions in schemas:
+
+            if definitions:
+                schema = Reference.dereference(schema, definitions)
+        
             param = cls(
-                name=name,
-                description=props.get('description'),
+                name=schema.get("title",""),
+                description=schema.get("description",""),
                 in_=attr.location(),
-                required=props.get('required', False),
-                deprecated=props.get('deprecated', False),
-                allowReserved=props.get('allowReserved', False),
-                style=props.get('style'),
-                explode=props.get('explode', False),
-                example=props.get('example'),
-                examples=props.get('examples'),
-                content=props.get('content'),
-                schema_=props.get('schema')
+                required=schema.get('required', False),
+                deprecated=schema.get('deprecated', False),
+                allowReserved=schema.get('allowReserved', False),
+                style=schema.get('style'),
+                explode=schema.get('explode', False),
+                # example=schema.get('example'),
+                # examples=schema.get('examples'),
+                # content=schema.get('content'),
+                schema_=schema
             )
             params.append(param)
-        
+
         return params
 
 class RequestBody(BaseModel):
@@ -336,14 +336,14 @@ class Response(BaseModel):
     links : Optional[Dict[str, Union[Link, Reference]]]
 
     @classmethod
-    def _from(cls, model : ModelMetaclass) -> 'Response':
+    def _from(cls, model : ModelMetaclass, content_type="application/json") -> 'Response':
         # By default if a pydantic model is passed, the only content type is application/json for MediaType
         # to allow multiple content in a Response object, a python dict needs to be passed manually.
         # via Response.parse_obj(my_dict)
         response = cls(
             description=model.__doc__ if model.__doc__ else '',
             content={
-                "application/json":MediaType._from(model)
+                content_type : MediaType._from(model)
             }
         )
 
@@ -404,6 +404,10 @@ class Operation(BaseModel):
                 # only consider relevant for parameter attributes - attr name ending in '_params'
                 continue
 
+            if "body_params" in attr:
+                # request body params handed by _extract_request_body()
+                continue
+
             request_schema = ViewAttributes.from_view(view, attr.value, http_method)
             if not request_schema:
                 continue
@@ -441,6 +445,12 @@ class Operation(BaseModel):
 
         description = ViewAttributes.from_view(view, 'description', http_method)
 
+        if not description:
+            # Try to retrieve from method docstring 
+            operation = getattr(view, http_method.value, None)
+            if operation and callable(operation):
+                description = operation.__doc__
+                
         if not description:
             description = view.__doc__
 

@@ -240,7 +240,13 @@ class EndPoint(BaseModel):
         description = ViewAttributes.from_view(view, 'description', http_method)
 
         if not description:
-            description = view.__doc__   
+            # Try to retrieve from method docstring 
+            operation = getattr(view, http_method.value, None)
+            if operation and callable(operation):
+                description = operation.__doc__
+                
+        if not description:
+            description = view.__doc__
 
         assert isinstance(description, (str, type(None))), "description must be string type"
         self.description = description
