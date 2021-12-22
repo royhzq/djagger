@@ -1,4 +1,5 @@
-from ...openapi import Operation, ExternalDocs, Server
+from pydantic import BaseModel
+from ...openapi import Operation, ExternalDocs, Server, RequestBody, MediaType, Response
 from ...enums import HttpMethod
 
 def test_extract_summary():
@@ -246,3 +247,154 @@ def test_extract_security():
     operation = Operation()
     operation._extract_security(View, HttpMethod.POST)
     assert operation.security == View.post_security
+
+def test_extract_request_body():
+
+    class Params(BaseModel):
+        """Request body params"""
+        field1 : str
+        field2 : int
+
+    class PostParams(BaseModel):
+        """Specific operation level body params"""
+        field3 : str
+
+    # 1. No attribute
+    class View:
+        ...
+    operation = Operation()
+    operation._extract_request_body(View, HttpMethod.POST)
+
+    assert operation.requestBody == None
+
+    # 2. Use API-level attribute
+    class View:
+        body_params = Params
+    
+    operation = Operation()
+    operation._extract_request_body(View, HttpMethod.POST)
+    assert isinstance(operation.requestBody, RequestBody)
+
+    # 3. Use operation-level attribute
+    class View:
+        body_params = Params
+        post_body_params = PostParams
+
+    operation = Operation()
+    operation._extract_request_body(View, HttpMethod.POST)
+    assert isinstance(operation.requestBody, RequestBody)
+    assert operation.requestBody.description == PostParams.__doc__
+
+    #4 . Case where a dict of multiple request bodies passed
+
+    class View:
+        body_params = {
+            'application/json':Params,
+            'text/plain':PostParams
+        }
+    
+    operation = Operation()
+    operation._extract_request_body(View, HttpMethod.POST)
+    assert isinstance(operation.requestBody, RequestBody)
+    assert operation.requestBody.content
+    for media in operation.requestBody.content.values():
+        assert isinstance(media, MediaType)
+
+    #5 . Case where a dict of multiple request bodies passed
+    # and dicts are used instead of pydantic modes
+
+    class View:
+        body_params = {
+            'application/json':{
+                'schema':{
+                    'title':'custom schema',
+                    'type':'string',
+                    'description':'some description'
+                }
+            }
+        }
+
+    operation = Operation()
+    operation._extract_request_body(View, HttpMethod.POST)
+    assert isinstance(operation.requestBody, RequestBody)
+    assert operation.requestBody.content
+    for media in operation.requestBody.content.values():
+        assert isinstance(media, MediaType)
+
+def test_extract_responses():
+
+    class ResponseSchema(BaseModel):
+        field : str
+
+        @classmethod
+        def example(cls):
+            return cls(
+                field="response schema example"
+            )
+
+    class PostResponseSchema(BaseModel):
+        field2 : int
+
+    class ErrorSchema(BaseModel):
+        message : str
+
+    # 1. No attribute
+    class View:
+        ...
+    operation = Operation()
+    operation._extract_responses(View, HttpMethod.POST)
+
+    assert operation.requestBody == None
+
+    # 2. Use API-level attribute
+    class View:
+        response_schema = ResponseSchema
+
+    operation = Operation()
+    operation._extract_responses(View, HttpMethod.POST)
+    assert isinstance(operation.responses.get('200'), Response)
+
+    # 3. Use API-level attribute
+    class View:
+        post_response_schema = PostResponseSchema
+        response_schema = ResponseSchema
+
+    operation = Operation()
+    operation._extract_responses(View, HttpMethod.POST)
+    assert operation.responses.get('200')
+
+    # 4. Multiple responses 
+    class View:
+        post_response_schema = {
+            '200': PostResponseSchema,
+            '400': ErrorSchema
+        }
+
+    operation = Operation()
+    operation._extract_responses(View, HttpMethod.POST)
+    assert operation.responses.get('200')
+    assert operation.responses.get('400')
+
+def test_extract_parameters():
+
+    # 1. No attribute
+    class View:
+        ...
+    operation = Operation()
+    operation._extract_parameters(View, HttpMethod.GET)
+    assert operation.parameters == []
+
+    # 2. Path and query params
+    class PathParams(BaseModel):
+        pk : int
+        name : str
+    
+    class QueryParams(BaseModel):
+        page : int
+
+    class View:
+        path_params = PathParams
+        query_params = QueryParams
+
+    operation = Operation()
+    operation._extract_parameters(View, HttpMethod.GET)

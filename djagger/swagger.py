@@ -8,7 +8,7 @@ from pydantic.main import ModelMetaclass
 from rest_framework import serializers
 from typing import Optional, List, Dict, Union, Type
 from enum import Enum
-from .utils import base_model_set_examples, get_url_patterns, extract_unique_schema
+from .utils import schema_set_examples, get_url_patterns, extract_unique_schema
 from .serializers import SerializerConverter
 from .enums import (
     HttpMethod, 
@@ -109,8 +109,6 @@ class Parameter(BaseModel):
         if not isinstance(schema, ModelMetaclass):
             raise TypeError("Parameter object must be pydantic.main.ModelMetaclass type")
 
-        base_model_set_examples(schema)
-
         if attr == attr.BODY_PARAMS:
             # Request body handled differently from other parameters
             # Uses #schema in one parameter object
@@ -156,7 +154,6 @@ class Response(BaseModel):
             if not isinstance(model, ModelMetaclass):
                 raise ValueError("Model in response schema must be pydantic.main.ModelMetaclass type")
 
-            base_model_set_examples(model)
             return cls(
                 description = model.__doc__ if model.__doc__ else "",
                 schema=extract_unique_schema(model),
@@ -503,7 +500,7 @@ class Document(BaseModel):
             except AttributeError:
                 view = url_pattern.callback # Function-based View / ViewSet 
             
-            exclude = ViewAttribute.from_view(view, 'djagger_exclude', None)
+            exclude = ViewAttributes.from_view(view, 'djagger_exclude', None)
             if exclude:
                 continue
             

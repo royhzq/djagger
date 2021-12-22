@@ -8,7 +8,7 @@ from pydantic import BaseModel, Field, ValidationError
 from pydantic.main import ModelMetaclass
 from rest_framework import serializers
 from typing import Optional, List, Dict, Union, Type, Any
-from .utils import base_model_set_examples, extract_unique_schema, get_url_patterns
+from .utils import schema_set_examples, extract_unique_schema, get_url_patterns
 
 from .enums import (
     HttpMethod, 
@@ -228,10 +228,9 @@ class MediaType(BaseModel):
         """Generates an instance of MediaType from a pydantic model"""
         
         media = cls()
-
-        base_model_set_examples(model)
-
         schema = model.schema()
+        schema = schema_set_examples(schema, model)
+
         definitions = schema.pop('definitions', {})
         if not definitions:
             media.schema_ = schema
@@ -241,7 +240,7 @@ class MediaType(BaseModel):
         # Generate example
         if hasattr(model, 'example'):
             if callable(model.example):
-                media.example = model.example()
+                media.example = model.example().dict(by_alias=True, exclude_none=True)
 
         # TODO: Handle multiple examples for ``examples`` field
         
@@ -299,6 +298,7 @@ class Parameter(BaseModel):
         # with each field as a separate parameter in the list of parameters
         
         schema = model.schema()
+        schema = schema_set_examples(schema, model)
         definitions = schema.pop('definitions', {})
         if definitions:
            schema = Reference.dereference(schema, definitions)
@@ -310,11 +310,11 @@ class Parameter(BaseModel):
                 name=name,
                 description=props.get('description'),
                 in_=attr.location(),
-                required=props.get('required'),
-                deprecated=props.get('deprecated'),
-                allowReserved=props.get('allowReserved'),
+                required=props.get('required', False),
+                deprecated=props.get('deprecated', False),
+                allowReserved=props.get('allowReserved', False),
                 style=props.get('style'),
-                explode=props.get('explode'),
+                explode=props.get('explode', False),
                 example=props.get('example'),
                 examples=props.get('examples'),
                 content=props.get('content'),
@@ -341,7 +341,7 @@ class Response(BaseModel):
         # to allow multiple content in a Response object, a python dict needs to be passed manually.
         # via Response.parse_obj(my_dict)
         response = cls(
-            description=model.__doc__,
+            description=model.__doc__ if model.__doc__ else '',
             content={
                 "application/json":MediaType._from(model)
             }
@@ -377,7 +377,6 @@ class Operation(BaseModel):
     servers : Optional[List[Server]]
 
         
-
     def _extract_operation_id(self, view : Type, http_method: HttpMethod):
 
         operation_id = ViewAttributes.from_view(view, 'operation_id', http_method)
@@ -443,7 +442,7 @@ class Operation(BaseModel):
         description = ViewAttributes.from_view(view, 'description', http_method)
 
         if not description:
-            description = view.__doc__   
+            description = view.__doc__
 
         if description:
             assert isinstance(description, str), "description must be string type"
@@ -456,50 +455,53 @@ class Operation(BaseModel):
             - ``ModelMetaclass``
             - ``Dict[str, Union[ModelMetaclass, Dict]``
         """
-        djagger_method_attributes = http_method.to_djagger_attribute()
 
-        request_body_attr = getattr(view, djagger_method_attributes.BODY_PARAMS.value, None)
-        if not request_body_attr: 
-            self.requestBody = None
+        request_body = ViewAttributes.from_view(view, 'body_params', http_method)
+        if not request_body: 
             return
 
         # Case where a pydantic model is passed, assumes only one media type i.e. application/json
-        if isinstance(request_body_attr, ModelMetaclass):
+        if isinstance(request_body, ModelMetaclass):
             self.requestBody = RequestBody(
-                description = request_body_attr.__doc__,
+                description = request_body.__doc__,
                 content={
-                    "application/json":MediaType._from(request_body_attr)
+                    "application/json":MediaType._from(request_body)
                 }
             )
             return 
         
         # Case where a dict is passed, extract ``required`` and ``description``
         # and media type for each pair in dict
-        elif isinstance(request_body_attr, Dict):
+        # E.g. 
+        # {
+        #     'description':'multiple request bodies',
+        #     'required':False,
+        #     'application/json': Schema_1,
+        #     'text/plain': Schema_2 
+        # }
+        elif isinstance(request_body, Dict):
 
             body = RequestBody()
-            body.description = request_body_attr.pop('description', '')
-            body.required = request_body_attr.pop('required', False)
-
+            body.description = request_body.pop('description', '')
+            body.required = request_body.pop('required', False)
             content = {}
-            for k, v in request_body_attr:
-                
+            for k, v in request_body.items():
                 if isinstance(v, Dict):
                     # validate for MediaType if a dict is given as the value of content
                     content[k] = MediaType(**v)
 
                 elif isinstance(v, ModelMetaclass):
-                    content[k] = MediaType._from(v, component='requestBodies') 
+                    content[k] = MediaType._from(v) 
 
                 else:
-                    raise TypeError("Value in request body dict must be a Dict type or pydantic ModelMetaclass")
+                    raise TypeError(f"Value in request body dict must be a Dict type or pydantic ModelMetaclass. Got {type(v)}")
                 
             body.content = content
 
             self.requestBody = body
             return
 
-        raise TypeError(f"{djagger_method_attributes.BODY_PARAMS.value} needs to be of type Dict or pydantic ModelMetaclass")
+        raise TypeError(f"Request body needs to be of type Dict or pydantic ModelMetaclass. Got {type(request_body)}")
 
 
     def _extract_responses(self, view : Type, http_method: HttpMethod):
@@ -510,13 +512,7 @@ class Operation(BaseModel):
 
         responses = {}
 
-        schema_attr : DjaggerMethodAttributes = http_method.to_djagger_attribute().RESPONSE_SCHEMA
-        response_schema = getattr(view, schema_attr.value, None)
-
-        if response_schema == None:
-            # Look for the api-level response schema as fallback
-            # E.g. if "post_response_schema" not found, look for "response_schema" attr instead
-            response_schema = getattr(view, DjaggerAPIAttributes.RESPONSE_SCHEMA.value, None)
+        response_schema = ViewAttributes.from_view(view, 'response_schema', http_method)
 
         # When attribute is a pydantic model - assume 200 response only
         if isinstance(response_schema, ModelMetaclass):
@@ -551,13 +547,8 @@ class Operation(BaseModel):
 
     def _extract_security(self, view : Type, http_method: HttpMethod):
 
-        djagger_method_attributes : DjaggerMethodAttributes = http_method.to_djagger_attribute()
-
-        self.security = getattr(view, djagger_method_attributes.SECURITY.value, None)
-        if not self.security:
-            self.security = getattr(view, DjaggerAPIAttributes.SECURITY.value, None)
-
-        assert isinstance(self.servers, (List, type(None))), "security attribute needs to be a list of server objects"
+        self.security = ViewAttributes.from_view(view, 'security', http_method)
+        assert isinstance(self.servers, (List, type(None))), "security attribute needs to be a list of objects"
 
         if self.security:
             for security in self.security:
@@ -568,33 +559,17 @@ class Operation(BaseModel):
                     for m in v:
                         assert isinstance(m, str), "security requirement value needs to be a list of strings"
 
-        return
-
     def _extract_servers(self, view : Type, http_method: HttpMethod):
 
-        djagger_method_attributes : DjaggerMethodAttributes = http_method.to_djagger_attribute()
-
-        self.servers = getattr(view, djagger_method_attributes.SERVERS.value, None)
-        if not self.servers:
-            self.servers = getattr(view, DjaggerAPIAttributes.SERVERS.value, None)
-
+        self.servers = ViewAttributes.from_view(view, 'servers', http_method)
         assert isinstance(self.servers, (List, type(None))), "servers attribute needs to be a list of server objects"
-
         if self.servers:
             self.servers = [ Server.parse_obj(server) for server in self.servers ]
-                
-        return
 
     def _extract_deprecated(self, view : Type, http_method: HttpMethod):
 
-        djagger_method_attributes : DjaggerMethodAttributes = http_method.to_djagger_attribute()
-
-        self.deprecated = getattr(view, djagger_method_attributes.DEPRECATED.value, None)
-        if not self.deprecated:
-            self.deprecated = getattr(view, DjaggerAPIAttributes.DEPRECATED.value, None)
-
+        self.deprecated = ViewAttributes.from_view(view, 'deprecated', http_method)
         assert isinstance(self.deprecated, (bool, type(None))), "deprecated attribute needs to be boolean"
-        return
 
     @classmethod
     def _from(cls, view : Type, http_method : HttpMethod) -> Union['Operation', None]:

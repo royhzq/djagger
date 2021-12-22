@@ -156,21 +156,16 @@ def get_url_patterns(app_names : List[str]) -> List[Tuple[str, URLPattern]]:
 
     return results
 
-def base_model_set_examples(base_model : ModelMetaclass):
+def schema_set_examples(schema : Dict, model : ModelMetaclass):
     """ Check if a class has callable `example()` and if so, sets the schema 'example' field
     to the result of `example()` callable. The callable should return an instance of the pydantic base model type.
     `example()` should return a single instance of the pydantic base model type.
     """
-
-    # Where `example()` method exists
-    if hasattr(base_model, 'example'):
-        if callable(base_model.example):
-            base_model.Config.schema_extra['example'] = [base_model.example().dict()]
-            base_model.schema()
-            return
-        base_model.Config.schema_extra['example'] = []
+    if hasattr(model, 'example'):
+        if callable(model.example):
+            schema['example'] = model.example().dict(by_alias=True)    
+    return schema
     
-
 def infer_field_type(field : fields.Field):
     """ Classifies DRF Field types into primitive python types or 
     creates an appropriate pydantic model metaclass types if the field itself
