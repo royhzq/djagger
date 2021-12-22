@@ -8,7 +8,7 @@ from pydantic import BaseModel, Field, ValidationError
 from pydantic.main import ModelMetaclass
 from rest_framework import serializers
 from typing import Optional, List, Dict, Union, Type, Any
-from .utils import schema_set_examples, extract_unique_schema, get_url_patterns
+from .utils import schema_set_examples, get_url_patterns
 
 from .enums import (
     HttpMethod, 

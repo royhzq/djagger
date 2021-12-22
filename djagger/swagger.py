@@ -8,7 +8,7 @@ from pydantic.main import ModelMetaclass
 from rest_framework import serializers
 from typing import Optional, List, Dict, Union, Type
 from enum import Enum
-from .utils import schema_set_examples, get_url_patterns, extract_unique_schema
+from .utils import schema_set_examples, get_url_patterns
 from .serializers import SerializerConverter
 from .enums import (
     HttpMethod, 
@@ -91,7 +91,7 @@ class Parameter(BaseModel):
 
 
     @classmethod
-    def to_parameters(cls, schema : ModelMetaclass, attr : DjaggerAttributeEnumType) -> List['Parameter']:
+    def to_parameters(cls, model : ModelMetaclass, attr : DjaggerAttributeEnumType) -> List['Parameter']:
         """ Converts the fields of a pydantic model to list of Parameter objects for use in generating request parameters.
         All attribute names ending in '_params' are relevant here. Non parameter object attributes should not be passed
         """
@@ -106,8 +106,15 @@ class Parameter(BaseModel):
         if not isinstance(attr, DjaggerAttributeEnumType):
             raise TypeError("attr must be an enum of DjaggerAttributeEnumType type")
 
-        if not isinstance(schema, ModelMetaclass):
+        if not isinstance(model, ModelMetaclass):
             raise TypeError("Parameter object must be pydantic.main.ModelMetaclass type")
+
+        schema = model.schema()
+        schema = schema_set_examples(schema, model)
+        definitions = schema.pop('definitions', {})
+        if definitions:
+           schema = Reference.dereference(schema, definitions)
+
 
         if attr == attr.BODY_PARAMS:
             # Request body handled differently from other parameters
@@ -115,19 +122,19 @@ class Parameter(BaseModel):
             params = [
                 cls(
                     name="body",
-                    description=schema.__doc__ if schema.__doc__ else "",
+                    description=model.__doc__ if model.__doc__ else "",
                     in_="body",
                     required=True,
                     type_=None,
-                    schema_=extract_unique_schema(schema),
-                    model=schema
+                    schema_=schema,
+                    model=model
                 )
             ]
             return params
         
         # Handle other parameters - path / query / form / headers/ cookie 
         # with each field as a separate parameter in the list of parameters
-        properties = extract_unique_schema(schema).get('properties',{})
+        properties = schema.get('properties',{})
         for name, props in properties.items():
             param = cls(
                 name=name,
@@ -154,9 +161,15 @@ class Response(BaseModel):
             if not isinstance(model, ModelMetaclass):
                 raise ValueError("Model in response schema must be pydantic.main.ModelMetaclass type")
 
+            schema = model.schema()
+            schema = schema_set_examples(schema, model)
+            definitions = schema.pop('definitions', {})
+            if definitions:
+                schema = Reference.dereference(schema, definitions)
+
             return cls(
                 description = model.__doc__ if model.__doc__ else "",
-                schema=extract_unique_schema(model),
+                schema=schema,
                 model=model
             )
 

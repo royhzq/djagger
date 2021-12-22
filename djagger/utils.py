@@ -170,7 +170,6 @@ def infer_field_type(field : fields.Field):
     """ Classifies DRF Field types into primitive python types or 
     creates an appropriate pydantic model metaclass types if the field itself
     is a Serializer class.
-    
     """
     mappings = {
         fields.BooleanField: bool,
@@ -213,7 +212,6 @@ def infer_field_type(field : fields.Field):
     return mappings.get(type(field))
 
 def field_to_pydantic_args(f : fields.Field) -> Dict:
-    
     """ Given a DRF Field, returns a dictionary of arguments to be passed
     to pydantic.create_model() field configs.
     """
@@ -347,18 +345,18 @@ def schema_from_serializer(s : serializers.Serializer) -> ModelMetaclass:
         
     return model
 
-def extract_unique_schema(model : ModelMetaclass) -> dict:
-    """ Calls the ``.schema()`` method with a custom ``ref_template`` containing uuid4.
-    This ensures the generated schema object definition will be unique across all other objects
-    if there are duplicate model names (e.g., imported from other modules)
-    """
-    suffix = uuid.uuid4().hex
-    schema = model.schema(ref_template='#/definitions/{model}' + '-' + suffix)
-    definitions = schema.get('definitions', {})
+# def extract_unique_schema(model : ModelMetaclass) -> dict:
+#     """ Calls the ``.schema()`` method with a custom ``ref_template`` containing uuid4.
+#     This ensures the generated schema object definition will be unique across all other objects
+#     if there are duplicate model names (e.g., imported from other modules)
+#     """
+#     suffix = uuid.uuid4().hex
+#     schema = model.schema(ref_template='#/definitions/{model}' + '-' + suffix)
+#     definitions = schema.get('definitions', {})
     
-    # Change all keys in definitions to have the suffix as well so the $ref will be valid.
-    if definitions:
-        schema['definitions'] = { k + '-' + suffix : v for k,v in definitions.items() }
+#     # Change all keys in definitions to have the suffix as well so the $ref will be valid.
+#     if definitions:
+#         schema['definitions'] = { k + '-' + suffix : v for k,v in definitions.items() }
 
-    return schema
+#     return schema
 
