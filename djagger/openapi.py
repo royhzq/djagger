@@ -351,7 +351,7 @@ class Response(BaseModel):
         headers = getattr(model.Config, 'headers', {})
         if headers and isinstance(headers, Dict):
             response.headers = {}
-            for k, v in headers:
+            for k, v in headers.items():
                 try:
                     response.headers[k] = Header.parse_obj(v)
                 except ValidationError as e:
