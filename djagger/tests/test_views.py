@@ -22,7 +22,7 @@ django.setup()
 def test_get_apps():
     assert get_url_patterns(['app1', 'app2'])
 
-
+``
 def test_open_api_json():
 
     request = HttpRequest()
@@ -31,6 +31,3 @@ def test_open_api_json():
     assert response.status_code == 200
     assert data['info']['title'] == 'DJAGGER_TITLE' # set in example.settings
     assert data['info']['description'] == 'DJAGGER_DESCRIPTION' # set in example.settings
-
-
-

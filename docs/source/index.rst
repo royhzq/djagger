@@ -20,50 +20,6 @@ Djagger is designed to be:
 
 🍭 **Easy** - Djagger uses pure, unadulterated pydantic models to generate schemas. If you have used pydantic, there is no learning curve. If you have not heard of pydantic, it is a powerful data validation library that is pretty straightforward to pickup (like dataclasses). `Check it out here <https://pydantic-docs.helpmanual.io/>`_. Either way, documenting your APIs will feel less like a chore.
 
-
-
-Quick start
------------
-
-Install using ``pip``
-
-.. code:: bash
-
-    pip install djagger
-
-
-
-Add 'djagger' to your ``INSTALLED_APPS`` setting like this
-
-.. code:: python
-
-    INSTALLED_APPS = [
-        ...
-        'djagger',
-    ]
-  
-
-Include the djagger URLconf in your project ``urls.py`` like this if you want to use the built-in document views.
-
-.. code:: python
-
-    urlpatterns = [
-        ...
-        path('djagger/', include('djagger.urls')),
-    ]
-    
-
-
-.. NOTE::
-   * To see the generated documentation, use the route **/djagger/api/docs**. Djagger uses `Redoc <https://github.com/Redocly/redoc>`_ as the default client generator.       
-   * To get the generated JSON schema file, use the route **/djagger/schema.json**.                                                                                           
-
-
-
-Note that the path ``djagger/`` is required when setting this URLconf.  Feel free to remove ``djagger.urls`` when you are more comfortable and decide to customize your own documentation views. The routes provided here are for you to get started quickly.
-
-
-
 Examples
 --------
 

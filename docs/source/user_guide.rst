@@ -3,7 +3,7 @@ User Guide
 
 
 Documenting APIs
----------------
+----------------
 
 Request Parameters
 ~~~~~~~~~~~~~~~~~~
