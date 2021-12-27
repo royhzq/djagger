@@ -2,7 +2,7 @@ User Guide
 ==========
 
 
-Writing Schemas
+Documenting APIs
 ---------------
 
 Request Parameters

@@ -31,12 +31,6 @@ def test_open_api_json():
     assert response.status_code == 200
     assert data['info']['title'] == 'DJAGGER_TITLE' # set in example.settings
     assert data['info']['description'] == 'DJAGGER_DESCRIPTION' # set in example.settings
-    # print(json.dumps(data))
 
-def test_redoc():
-
-    request = HttpRequest()
-    response = redoc(request)
-    assert response.status_code == 200
 
 

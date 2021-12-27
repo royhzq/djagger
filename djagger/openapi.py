@@ -774,18 +774,11 @@ class Document(BaseModel):
             
             path = Path.create(view)
 
-            # If path has none of the methods documented, skip its documentation
-            if getattr(path, 'get', None) or \
-                getattr(path, 'post', None) or \
-                getattr(path, 'put', None) or \
-                getattr(path, 'patch', None) or \
-                getattr(path, 'options', None) or \
-                getattr(path, 'trace', None) or \
-                getattr(path, 'head', None) or \
-                getattr(path, 'delete', None):
-
+            # Document the path if it has at least one http method view function
+            for method_name in HttpMethod.values():
+                if getattr(path, method_name, None):
                     paths["/" + route] = path
-
+                    break
 
         # Create tag objects as provided
         # Note that if tags supplied is empty, they will still be generated when

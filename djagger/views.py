@@ -1,6 +1,7 @@
 from django.shortcuts import render
-from django.http import JsonResponse, HttpRequest, HttpResponse
+from django.http import JsonResponse, HttpRequest
 from django.conf import settings
+from django.urls import reverse
 
 from .decorators import schema
 from .openapi import Document as OpenAPIDoc
@@ -40,12 +41,4 @@ def redoc(request : HttpRequest):
     open_api_json()
     See https://github.com/Redocly/redoc
     """
-
-    basepath = os.path.dirname(__file__)
-    template_path = os.path.abspath(os.path.join(basepath, "templates/redoc.html"))
-    with open(template_path, "r") as t:
-        html = t.read()
-
-    response = HttpResponse(html, content_type="text/html")
-    
-    return response
+    return render(request, 'djagger/redoc.html')
