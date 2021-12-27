@@ -56,8 +56,66 @@ Features
 **Schema Driven Development** - Use ``pydantic`` to generate schema objects to document your Views. Your schemas can in turn be used to validate your requests and responses to ensure that they are consistent with your documentation.
 
 
-
-
-
 Quickstart
 ----------
+
+Simple GET API Example
+~~~~~~~~~~~~~~~~~~~~~~
+.. code:: python
+
+    from rest_framework.views import APIView
+    from rest_framework.response import Response
+    from pydantic import BaseModel as Schema
+
+    class ArticleDetailSchema(Schema):
+        created : datetime.datetime
+        title : str
+        author : str
+        content : str
+
+    class RandomArticleAPI(APIView):
+        
+        """Return a random article from the Blog"""
+
+        response_schema = ArticleDetailSchema
+
+        def get(self, request):
+            ...
+            return Response({})
+
+.. raw:: html 
+
+    <p>See the generated docs <a href="" target="_blank">here</a>, and the code <a href="" target="_blank">here</a>.</p>
+
+
+Simple POST API Example
+~~~~~~~~~~~~~~~~~~~~~~~
+.. code:: python
+
+    from rest_framework.views import APIView
+    from rest_framework.response import Response
+    from pydantic import BaseModel as Schema, Field
+
+    class ArticleDetailSchema(Schema):
+        created : datetime.datetime
+        title : str
+        author : str
+        content : str
+
+    class ArticleCreateSchema(Schema):
+        """POST schema for blog article creation"""
+        title : str = Field(description="Title of Blog article")
+        content : str = Field(description="Blog article content")
+
+    class ArticleCreateAPI(APIView):
+
+        body_params = ArticleCreateSchema
+        response_schema = ArticleDetailSchema
+
+        def post(self, request):
+            ...
+            return Response({})
+
+.. raw:: html 
+
+    <p>See the generated docs <a href="" target="_blank">here</a>, and the code <a href="" target="_blank">here</a>.</p>
