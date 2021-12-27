@@ -243,9 +243,8 @@ class MediaType(BaseModel):
             media.schema_ = Reference.dereference(schema, definitions)
         
         # Generate example
-        if hasattr(model, 'example'):
-            if callable(model.example):
-                media.example = model.example().dict(by_alias=True, exclude_none=True)
+        if callable(getattr(model, 'example', None)):
+            media.example = model.example().dict(by_alias=True, exclude_none=True)
 
         # TODO: Handle multiple examples for ``examples`` field
         
