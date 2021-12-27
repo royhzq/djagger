@@ -83,7 +83,7 @@ def clean_regex_string(s : str) -> str:
 
     """
     s = s.replace("^", "").replace("\\", "")
-    regex_pattern = r'\(\?P<([a-zA-Z0-9\-\_]*)>.*\)'
+    regex_pattern = r'\(\?P<([a-zA-Z0-9\-\_]*)>.*?\)'
     return re.sub(regex_pattern, r'{\1}', s).replace("?","").replace("$","")
 
 

@@ -8,6 +8,7 @@ from pydantic import BaseModel, Field, ValidationError
 from pydantic.main import ModelMetaclass
 from rest_framework import serializers
 from typing import Optional, List, Dict, Union, Type, Any
+from .serializers import SerializerConverter
 from .utils import schema_set_examples, get_url_patterns, model_field_schemas
 
 from .enums import (
@@ -511,7 +512,16 @@ class Operation(BaseModel):
             self.requestBody = body
             return
 
-        raise TypeError(f"Request body needs to be of type Dict or pydantic ModelMetaclass. Got {type(request_body)}")
+        elif isinstance(request_body, serializers.SerializerMetaclass):
+            self.requestBody = RequestBody(
+                description = request_body.__doc__,
+                content={
+                    "application/json":MediaType._from(SerializerConverter(s=request_body()).to_model())
+                }
+            )
+            return
+
+        raise TypeError(f"Request body needs to be of type Dict, pydantic ModelMetaclass or rest_framework.serializers.SerializerMetaclass. Got {type(request_body)}")
 
 
     def _extract_responses(self, view : Type, http_method: HttpMethod):
