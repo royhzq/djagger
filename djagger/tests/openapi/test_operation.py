@@ -1,4 +1,5 @@
 from pydantic import BaseModel
+from rest_framework import serializers
 from ...openapi import Operation, ExternalDocs, Server, RequestBody, MediaType, Response
 from ...enums import HttpMethod
 
@@ -259,6 +260,10 @@ def test_extract_request_body():
         """Specific operation level body params"""
         field3 : str
 
+    class TestSerializer(serializers.Serializer):
+        """Test Serializer"""
+        field4 = serializers.IntegerField()
+
     # 1. No attribute
     class View:
         ...
@@ -285,12 +290,23 @@ def test_extract_request_body():
     assert isinstance(operation.requestBody, RequestBody)
     assert operation.requestBody.description == PostParams.__doc__
 
+    # 3.5 - User operation-level attribute with serializer
+    class View:
+        body_params = TestSerializer
+        post_body_params = TestSerializer
+
+    operation = Operation()
+    operation._extract_request_body(View, HttpMethod.POST)
+    assert isinstance(operation.requestBody, RequestBody)
+    assert operation.requestBody.description == TestSerializer.__doc__
+
     #4 . Case where a dict of multiple request bodies passed
 
     class View:
         body_params = {
             'application/json':Params,
-            'text/plain':PostParams
+            'text/plain':PostParams,
+            'text/html':TestSerializer,
         }
     
     operation = Operation()
@@ -338,6 +354,10 @@ def test_extract_responses():
     class ErrorSchema(BaseModel):
         message : str
 
+    class TestSerializer(serializers.Serializer):
+        """Test Serializer"""
+        field3 = serializers.IntegerField()
+
     # 1. No attribute
     class View:
         ...
@@ -363,17 +383,28 @@ def test_extract_responses():
     operation._extract_responses(View, HttpMethod.POST)
     assert operation.responses.get('200')
 
+    # 3.5 Use API-level attribute with serializers
+    class View:
+        post_response_schema = TestSerializer
+        response_schema = TestSerializer
+
+    operation = Operation()
+    operation._extract_responses(View, HttpMethod.POST)
+    assert operation.responses.get('200')
+
     # 4. Multiple responses 
     class View:
         post_response_schema = {
             '200': PostResponseSchema,
-            '400': ErrorSchema
+            '400': ErrorSchema,
+            '404': TestSerializer
         }
 
     operation = Operation()
     operation._extract_responses(View, HttpMethod.POST)
     assert operation.responses.get('200')
     assert operation.responses.get('400')
+    assert operation.responses.get('404')
 
 def test_extract_parameters():
 
@@ -392,9 +423,24 @@ def test_extract_parameters():
     class QueryParams(BaseModel):
         page : int
 
+    class TestSerializer(serializers.Serializer):
+        """Test Serializer"""
+        field1 = serializers.IntegerField()
+        field2 = serializers.CharField()
+
+    # 1. Test query and path parameters
     class View:
         path_params = PathParams
         query_params = QueryParams
+
+    operation = Operation()
+    operation._extract_parameters(View, HttpMethod.GET)
+
+    # 1.5 - Test query and path parameters with serializers
+
+    class View:
+        path_params = TestSerializer
+        query_params = TestSerializer
 
     operation = Operation()
     operation._extract_parameters(View, HttpMethod.GET)

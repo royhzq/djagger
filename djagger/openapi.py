@@ -225,10 +225,14 @@ class MediaType(BaseModel):
         allow_population_by_field_name = True
     
     @classmethod
-    def _from(cls, model : ModelMetaclass) -> 'MediaType':
-        """Generates an instance of MediaType from a pydantic model"""
+    def _from(cls, model : Union[ModelMetaclass, serializers.SerializerMetaclass]) -> 'MediaType':
+        """Generates an instance of MediaType from a pydantic model or from a rest_framework serializer"""
         
         media = cls()
+
+        if isinstance(model, serializers.SerializerMetaclass):
+            model = SerializerConverter(s=model()).to_model()
+            
         schema = model.schema()
         schema = schema_set_examples(schema, model)
 
@@ -299,7 +303,6 @@ class Parameter(BaseModel):
         # Handle parameters - path / query / header/ cookie 
         # with each field as a separate parameter in the list of parameters
         
-
         schemas = model_field_schemas(model)
 
         for schema, definitions in schemas:
@@ -316,9 +319,6 @@ class Parameter(BaseModel):
                 allowReserved=schema.get('allowReserved', False),
                 style=schema.get('style'),
                 explode=schema.get('explode', False),
-                # example=schema.get('example'),
-                # examples=schema.get('examples'),
-                # content=schema.get('content'),
                 schema_=schema
             )
             params.append(param)
@@ -337,7 +337,7 @@ class Response(BaseModel):
     links : Optional[Dict[str, Union[Link, Reference]]]
 
     @classmethod
-    def _from(cls, model : ModelMetaclass, content_type="application/json") -> 'Response':
+    def _from(cls, model : Union[ModelMetaclass, serializers.SerializerMetaclass], content_type="application/json") -> 'Response':
         # By default if a pydantic model is passed, the only content type is application/json for MediaType
         # to allow multiple content in a Response object, a python dict needs to be passed manually.
         # via Response.parse_obj(my_dict)
@@ -348,15 +348,16 @@ class Response(BaseModel):
             }
         )
 
-        # Extract headers dict in the Response model Config
-        headers = getattr(model.Config, 'headers', {})
-        if headers and isinstance(headers, Dict):
-            response.headers = {}
-            for k, v in headers.items():
-                try:
-                    response.headers[k] = Header.parse_obj(v)
-                except ValidationError as e:
-                    warnings.warn(f"Validation error in header: {str(e)}")
+        if isinstance(model, ModelMetaclass):
+            # Extract headers dict in the Response model Config
+            headers = getattr(model.Config, 'headers', {})
+            if headers and isinstance(headers, Dict):
+                response.headers = {}
+                for k, v in headers.items():
+                    try:
+                        response.headers[k] = Header.parse_obj(v)
+                    except ValidationError as e:
+                        warnings.warn(f"Validation error in header: {str(e)}")
 
         return response
 
@@ -394,8 +395,7 @@ class Operation(BaseModel):
             self.externalDocs = ExternalDocs.parse_obj(self.externalDocs)
 
     def _extract_parameters(self, view : Type, http_method: HttpMethod):
-        """ Helper to initialize request `parameters` from a View for a given http method
-        """
+        """ Helper to initialize request `parameters` from a View for a given http method"""
 
         self.parameters = []
 
@@ -472,7 +472,7 @@ class Operation(BaseModel):
             return
 
         # Case where a pydantic model is passed, assumes only one media type i.e. application/json
-        if isinstance(request_body, ModelMetaclass):
+        if isinstance(request_body, (ModelMetaclass, serializers.SerializerMetaclass)):
             self.requestBody = RequestBody(
                 description = request_body.__doc__,
                 content={
@@ -501,7 +501,7 @@ class Operation(BaseModel):
                     # validate for MediaType if a dict is given as the value of content
                     content[k] = MediaType(**v)
 
-                elif isinstance(v, ModelMetaclass):
+                elif isinstance(v, (ModelMetaclass, serializers.SerializerMetaclass)):
                     content[k] = MediaType._from(v) 
 
                 else:
@@ -512,16 +512,7 @@ class Operation(BaseModel):
             self.requestBody = body
             return
 
-        elif isinstance(request_body, serializers.SerializerMetaclass):
-            self.requestBody = RequestBody(
-                description = request_body.__doc__,
-                content={
-                    "application/json":MediaType._from(SerializerConverter(s=request_body()).to_model())
-                }
-            )
-            return
-
-        raise TypeError(f"Request body needs to be of type Dict, pydantic ModelMetaclass or rest_framework.serializers.SerializerMetaclass. Got {type(request_body)}")
+        raise TypeError(f"Request body needs to be of type Dict, pydantic ModelMetaclass or rest_framework SerializerMetaclass. Got {type(request_body)}")
 
 
     def _extract_responses(self, view : Type, http_method: HttpMethod):
@@ -534,16 +525,12 @@ class Operation(BaseModel):
 
         response_schema = ViewAttributes.from_view(view, 'response_schema', http_method)
 
-        # When attribute is a pydantic model - assume 200 response only
-        if isinstance(response_schema, ModelMetaclass):
+        # When attribute is a pydantic model or serializer - assume 200 response only
+        if isinstance(response_schema, (ModelMetaclass, serializers.SerializerMetaclass)):
             responses = { 
                 '200': Response._from(response_schema)
             }
-        # When attribute is a Serializer - assume 200 response only
-        elif isinstance(response_schema, serializers.SerializerMetaclass):
-            responses = {
-                '200': Response._from(SerializerConverter(s=response_schema()).to_model())
-            }
+
         # When attribute is a dict of responses, prepare dict of Response values
         elif isinstance(response_schema, Dict):
 
@@ -551,17 +538,13 @@ class Operation(BaseModel):
                 if not isinstance(status_code, str):
                     raise ValueError("key in response schema dict needs to be string")
 
-                if isinstance(model, serializers.SerializerMetaclass):
-                    model = SerializerConverter(s=model()).to_model()
+                if isinstance(model, (ModelMetaclass, serializers.SerializerMetaclass)):
                     responses[status_code] = Response._from(model)
 
                 elif isinstance(model, Dict):
                     # For manual parsing if a Dict is passed instead of the expected ModelMetaclass or Serializer
                     responses[status_code] = Response.parse_obj(model)
-                
-                else:
-                    responses[status_code] = Response._from(model)
-        
+                        
         self.responses = responses
         
 
@@ -658,20 +641,19 @@ class Path(BaseModel):
         if inspect.isclass(view):
             # For CBV or DRF API, check for methods by looking for get(), post(), patch(), ... methods
             for http_method in HttpMethod.__members__.values():
-                if hasattr(view, http_method):
-                    if callable(getattr(view, http_method)):
-                        
-                        if http_method == HttpMethod.OPTIONS:
-                            # Special handling of OPTIONS method documentation as it is automatically present in every CBV
-                            # Only auto-document OPTIONS if a specific ``options_response_schema`` attribute is detected.
-                            if not hasattr(view, 'options_response_schema'):
-                                continue
 
-                        operation = Operation._from(view, http_method)
-                        if not operation:
+                if callable(getattr(view, http_method, None)):                    
+                    if http_method == HttpMethod.OPTIONS:
+                        # Special handling of OPTIONS method documentation as it is automatically present in every CBV
+                        # Only auto-document OPTIONS if a specific ``options_response_schema`` attribute is detected.
+                        if not hasattr(view, 'options_response_schema'):
                             continue
 
-                        setattr(path, http_method, operation)
+                    operation = Operation._from(view, http_method)
+                    if not operation:
+                        continue
+
+                    setattr(path, http_method, operation)
 
         elif inspect.isfunction(view):
 
