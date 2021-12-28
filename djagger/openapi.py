@@ -659,29 +659,37 @@ class Path(BaseModel):
                     setattr(path, http_method, operation)
 
         elif inspect.isfunction(view):
-
-            # Handle DRF ViewSets 
-            # DRF ViewSets are function based views with an ``actions`` attr which is a dict
-            # of http_methods as keys. 
-
-            # TODO: Handle each ViewSet function with separate schemas, treating each function
-            # `retrieve`, `list` etc. as one FBV each
             
             if hasattr(view, 'actions'):
-                for k in view.actions.keys():
+
+                # Handle DRF ViewSets 
+                # DRF ViewSet views are function based views with an ``actions`` attr 
+                # which is a Dict[str, str] of http_methods as keys and action names as values.
+                # e.g. view.actions = { 'get': 'list' }
+
+                actions : Dict[str, str] = getattr(view, 'actions', {})
+
+                for method, action in actions.items():
                     try:
-                        http_method = HttpMethod(k)
+                        http_method = HttpMethod(method.lower())
                     except ValueError:
                         continue
+                    
+                    viewset_class = getattr(view, 'cls', None)
+                    if not viewset_class:
+                        continue
+                    
+                    action_fbv_view = getattr(viewset_class, action, None)
+                    if not action_fbv_view:
+                        continue
 
-                    operation = Operation._from(view, http_method)
+                    operation = Operation._from(action_fbv_view, http_method)
                     if not operation:
                         continue
-                    if not operation.responses:
-                        continue
+
                     setattr(path, http_method, operation)
 
-            # For FBVs, check for existence of http methods from the `djagger_http_methods` attribute
+            # For regular FBVs, check for existence of http methods from the `djagger_http_methods` attribute
             # set by the @schema decorator
 
             if not hasattr(view, DJAGGER_HTTP_METHODS):
@@ -692,8 +700,7 @@ class Path(BaseModel):
                 operation = Operation._from(view, http_method)
                 if not operation:
                     continue
-                if not operation.responses:
-                    continue
+                    
                 setattr(path, http_method, operation)
 
         return path
