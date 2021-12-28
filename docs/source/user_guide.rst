@@ -366,6 +366,100 @@ API method Information
 List of Djagger View attributes
 -------------------------------
 
+The table below lists the attributes that can be defined in a view that will be extracted by Djagger to build the documentation.
+For class-based views encompassing multiple HTTP methods, the attributes below will apply to ALL HTTP methods. 
+
+To differentiate the attributes for different HTTP methods, prefix the method name in front of any of the attributes in the table below. For example, instead of declaring the class attribute ``response_schema``, you may declare both ``get_response_schema`` and ``post_response_schema`` to differentiate between GET and POST responses. See example below.
+
+The available HTTP method names for the prefix are ``get``, ``post``, ``patch``, ``delete``, ``put``, ``options``, ``head``, ``trace``.
+
+
+.. NOTE::
+    **Hierarchy of Specificity** - A more specific declaration of a Djagger view attribute will override a less specific one. 
+    For example, having both ``summary`` and ``post_summary`` attributes will result in the POST endpoint taking on the value of ``post_summary`` while the other endpoints will take on the summary value of ``summary`` in the documentation.
+
+
++----------------------+-----------------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| Attribute            | Type                                          | Description                                                                                                                                                                                                   |
++======================+===============================================+===============================================================================================================================================================================================================+
+| ``path_params``      | ``ModelMetaclass`` | ``SerializerMetaclass``  | Schema for the parameter values that are part of the URL E.g. ``/article/<int:pk>`` where ``pk`` is the path parameter.                                                                                       |
++----------------------+-----------------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``query_params``     | ``ModelMetaclass`` | ``SerializerMetaclass``  | Schema for the parameter values that are  appended to the URL. E.g. ``/articles?page=3`` where ``page`` is the query parameter.                                                                               |
++----------------------+-----------------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``header_params``    | ``ModelMetaclass`` | ``SerializerMetaclass``  | Schema for custom headers that are expected as part of the request.                                                                                                                                           |
++----------------------+-----------------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``cookie_params``    | ``ModelMetaclass`` | ``SerializerMetaclass``  | Schema for cookie values specific to the API.                                                                                                                                                                 |
++----------------------+-----------------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``body_params``      | ``ModelMetaclass`` | ``SerializerMetaclass``  | Schema for HTTP body Data sent to the API commonly used for POST, PUT, UPDATE methods.                                                                                                                        |
++----------------------+-----------------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``response_schema``  | ``ModelMetaclass`` | ``SerializerMetaclass``  | Schema for responses returned by the API. By default, if aa pydantic model or a DRF serializer class is passed as the value, the response is documented by default as a successful one i.e. 200 status code.  |
++----------------------+-----------------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``summary``          | ``str``                                       | Summary of the API.                                                                                                                                                                                           |
++----------------------+-----------------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``tags``             | List[str]                                     | List of string tag names.                                                                                                                                                                                     |
++----------------------+-----------------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``description``      | ``str``                                       | String description of the API.                                                                                                                                                                                |
++----------------------+-----------------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``operation_id``     | ``str``                                       | Unique string used to identify the operation                                                                                                                                                                  |
++----------------------+-----------------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``deprecated``       | ``bool``                                      | Boolean value to indicate if API is deprecated. Defaults to ``True``                                                                                                                                          |
++----------------------+-----------------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``external_docs``    | ``dict``                                      | Dictionary containing ``url`` and ``description`` fields to describe external documentation for the API.                                                                                                      |
++----------------------+-----------------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``servers``          | ``List[dict]``                                | List of dictionary Server objects which provide connectivity information to a target server.                                                                                                                  |
++----------------------+-----------------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``security``         | ``List[dict]``                                | A declaration of which security mechanisms can be used across the API.                                                                                                                                        |
++----------------------+-----------------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``djagger_exclude``  | ``bool``                                      | Declare this attribute as ``True`` to skip documentation of the API.                                                                                                                                          |
++----------------------+-----------------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+
+**Example with HTTP method specific attributes**
+
+.. code:: python
+    
+    ...
+
+    class FindToyByIdAPI(APIView):
+
+        get_summary = "Find Toy by ID"
+        get_path_params = ToyIdSchema
+        get_response_schema = {
+            "200":ToySchema,
+            "400":InvalidToySchema,
+            "404":ToyNotFoundSchema
+        }
+        
+        post_summary = "Update Toy with form data"
+        post_body_params = {
+            "multipart/form-data":ToyIdFormSchema
+        }
+        post_response_schema = {
+            "405":InvalidToySchema
+        }
+
+        delete_summary = "Deletes a Toy"
+        delete_header_params = ToyDeleteHeaderSchema
+        delete_path_params = ToyIdSchema
+        delete_response_schema = {
+            "400":InvalidToySchema
+        }
+
+        def get(self, request, toyId: int):
+            ...
+            return Response({})
+
+        def post(self, request, toyId: int):
+            ...
+            return Response({})
+
+        def delete(self, request, toyId: int):
+            ...
+            return Response({})
+
+.. raw:: html 
+
+    <p>See the generated docs for this example <a href="" target="_blank">here</a>, and the code <a href="" target="_blank">here</a>.</p>
+
 Document Generation
 -------------------
 
