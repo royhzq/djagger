@@ -380,14 +380,14 @@ class Operation(BaseModel):
         
     def _extract_operation_id(self, view : Type, http_method: HttpMethod):
 
-        operation_id = ViewAttributes.from_view(view, 'operation_id', http_method)
+        operation_id = ViewAttributes.from_view(view, ViewAttributes.api.OPERATION_ID, http_method)
         assert isinstance(operation_id, (str, type(None))), "operation_id must be string type"
         self.operationId = operation_id
 
 
     def _extract_external_docs(self, view : Type, http_method: HttpMethod):
 
-        self.externalDocs = ViewAttributes.from_view(view, 'external_docs', http_method)
+        self.externalDocs = ViewAttributes.from_view(view, ViewAttributes.api.EXTERNAL_DOCS, http_method)
         assert isinstance(self.externalDocs, (Dict, type(None))), "externalDocs attribute needs to be a dict"
 
         if self.externalDocs:
@@ -408,7 +408,7 @@ class Operation(BaseModel):
                 # request body params handed by _extract_request_body()
                 continue
 
-            request_schema = ViewAttributes.from_view(view, attr.value, http_method)
+            request_schema = ViewAttributes.from_view(view, attr, http_method)
             if not request_schema:
                 continue
 
@@ -420,7 +420,7 @@ class Operation(BaseModel):
 
     def _extract_tags(self, view : Type, http_method: HttpMethod):
 
-        tags = ViewAttributes.from_view(view, 'tags', http_method)
+        tags = ViewAttributes.from_view(view, ViewAttributes.api.TAGS, http_method)
 
         if not tags:
             tags = [view.__module__.split(".")[0]] # Set tags as the app module name of the API as fallback
@@ -431,7 +431,7 @@ class Operation(BaseModel):
 
     def _extract_summary(self, view : Type, http_method: HttpMethod):
 
-        summary = ViewAttributes.from_view(view, 'summary', http_method)
+        summary = ViewAttributes.from_view(view, ViewAttributes.api.SUMMARY, http_method)
 
         if not summary:
             summary = view.__name__     
@@ -443,7 +443,7 @@ class Operation(BaseModel):
 
     def _extract_description(self, view : Type, http_method: HttpMethod):
 
-        description = ViewAttributes.from_view(view, 'description', http_method)
+        description = ViewAttributes.from_view(view, ViewAttributes.api.DESCRIPTION, http_method)
 
         if not description:
             # Try to retrieve from method docstring 
@@ -466,7 +466,7 @@ class Operation(BaseModel):
             - ``Dict[str, Union[ModelMetaclass, Dict]``
         """
 
-        request_body = ViewAttributes.from_view(view, 'body_params', http_method)
+        request_body = ViewAttributes.from_view(view, ViewAttributes.api.BODY_PARAMS, http_method)
         if not request_body: 
             return
 
@@ -522,7 +522,7 @@ class Operation(BaseModel):
 
         responses = {}
 
-        response_schema = ViewAttributes.from_view(view, 'response_schema', http_method)
+        response_schema = ViewAttributes.from_view(view, ViewAttributes.api.RESPONSE_SCHEMA, http_method)
 
         # When attribute is a pydantic model or serializer - assume 200 response only
         if isinstance(response_schema, (ModelMetaclass, serializers.SerializerMetaclass)):
@@ -549,7 +549,7 @@ class Operation(BaseModel):
 
     def _extract_security(self, view : Type, http_method: HttpMethod):
 
-        self.security = ViewAttributes.from_view(view, 'security', http_method)
+        self.security = ViewAttributes.from_view(view, ViewAttributes.api.SECURITY, http_method)
         assert isinstance(self.servers, (List, type(None))), "security attribute needs to be a list of objects"
 
         if self.security:
@@ -563,14 +563,14 @@ class Operation(BaseModel):
 
     def _extract_servers(self, view : Type, http_method: HttpMethod):
 
-        self.servers = ViewAttributes.from_view(view, 'servers', http_method)
+        self.servers = ViewAttributes.from_view(view, ViewAttributes.api.SERVERS, http_method)
         assert isinstance(self.servers, (List, type(None))), "servers attribute needs to be a list of server objects"
         if self.servers:
             self.servers = [ Server.parse_obj(server) for server in self.servers ]
 
     def _extract_deprecated(self, view : Type, http_method: HttpMethod):
 
-        self.deprecated = ViewAttributes.from_view(view, 'deprecated', http_method)
+        self.deprecated = ViewAttributes.from_view(view, ViewAttributes.api.DEPRECATED, http_method)
         assert isinstance(self.deprecated, (bool, type(None))), "deprecated attribute needs to be boolean"
 
     @classmethod
@@ -588,7 +588,7 @@ class Operation(BaseModel):
         )
 
         # Exclude at the method-level if `<http_method>_djagger_exclude` is True
-        exclude = ViewAttributes.from_view(view, 'djagger_exclude', http_method)
+        exclude = ViewAttributes.from_view(view, ViewAttributes.api.DJAGGER_EXCLUDE, http_method)
         if exclude:
             return None
 
@@ -633,8 +633,8 @@ class Path(BaseModel):
         from the Djagger attributes set in the view.
         """
         path = cls(
-            summary = getattr(view, 'summary', None),
-            description = getattr(view, 'description', None)
+            summary = getattr(view, ViewAttributes.api.SUMMARY, None),
+            description = getattr(view, ViewAttributes.api.DESCRIPTION, None)
         )
         
         if inspect.isclass(view):
@@ -760,7 +760,7 @@ class Document(BaseModel):
             except AttributeError:
                 view = url_pattern.callback # Function-based View / ViewSet 
             
-            if ViewAttributes.from_view(view, 'djagger_exclude'):
+            if ViewAttributes.from_view(view, ViewAttributes.api.DJAGGER_EXCLUDE.value):
                 continue
             
             path = Path.create(view)
