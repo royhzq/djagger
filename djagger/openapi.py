@@ -225,12 +225,12 @@ class MediaType(BaseModel):
         allow_population_by_field_name = True
     
     @classmethod
-    def _from(cls, model : Union[ModelMetaclass, serializers.SerializerMetaclass]) -> 'MediaType':
+    def _from(cls, model : Union[ModelMetaclass, serializers.SerializerMetaclass, serializers.ListSerializer]) -> 'MediaType':
         """Generates an instance of MediaType from a pydantic model or from a rest_framework serializer"""
         
         media = cls()
 
-        if isinstance(model, serializers.SerializerMetaclass):
+        if isinstance(model, (serializers.SerializerMetaclass, serializers.ListSerializer)):
             model = SerializerConverter(s=model()).to_model()
             
         schema = model.schema()

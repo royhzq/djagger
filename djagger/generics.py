@@ -1,6 +1,6 @@
 """ Utils to help extract serializers from Generic DRF Views
 """
-from rest_framework.serializers import SerializerMetaclass
+from rest_framework.serializers import SerializerMetaclass, ListSerializer
 from .enums import ViewAttributes
 
 def set_response_schema_from_serializer_class(view):
@@ -13,7 +13,7 @@ def set_response_schema_from_serializer_class(view):
     if not hasattr(view, 'serializer_class'):
         return 
 
-    if not isinstance(view.serializer_class, SerializerMetaclass):
+    if not isinstance(view.serializer_class, (SerializerMetaclass, ListSerializer)):
         return
 
     if hasattr(view, ViewAttributes.api.RESPONSE_SCHEMA):
