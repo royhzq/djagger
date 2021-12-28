@@ -10,7 +10,7 @@ from rest_framework import serializers
 from typing import Optional, List, Dict, Union, Type, Any
 from .serializers import SerializerConverter
 from .utils import schema_set_examples, get_url_patterns, model_field_schemas
-
+from .generics import set_response_schema_from_serializer_class
 from .enums import (
     HttpMethod, 
     ViewAttributes,
@@ -638,6 +638,10 @@ class Path(BaseModel):
         )
         
         if inspect.isclass(view):
+
+            # For generic API views, set ``response_schema`` if it does not yet exist to the value in ``serializer_class``
+            set_response_schema_from_serializer_class(view)
+
             # For CBV or DRF API, check for methods by looking for get(), post(), patch(), ... methods
             for http_method in HttpMethod.__members__.values():
 

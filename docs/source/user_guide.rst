@@ -687,4 +687,4 @@ To create your own documentation view, generate the document via Djagger's ``Doc
         response['Cache-Control'] = "no-cache, no-store, must-revalidate"
         return response
 
-
+The ``custom_doc_view`` view in the example returns a JSON response containing the OpenAPI 3 compliant JSON schema. You may then use your preferred documentation client generator to consume the JSON schema from the view to generate your desired documentation.
