@@ -67,6 +67,8 @@ Simple GET API Example
     from rest_framework.views import APIView
     from rest_framework.response import Response
     from pydantic import BaseModel as Schema
+    import datetime
+
 
     class ArticleDetailSchema(Schema):
         created : datetime.datetime
@@ -74,8 +76,8 @@ Simple GET API Example
         author : str
         content : str
 
+
     class RandomArticleAPI(APIView):
-        
         """Return a random article from the Blog"""
 
         response_schema = ArticleDetailSchema
@@ -96,6 +98,8 @@ Simple POST API Example
     from rest_framework.views import APIView
     from rest_framework.response import Response
     from pydantic import BaseModel as Schema, Field
+    import datetime
+
 
     class ArticleDetailSchema(Schema):
         created : datetime.datetime
@@ -107,6 +111,7 @@ Simple POST API Example
         """POST schema for blog article creation"""
         title : str = Field(description="Title of Blog article")
         content : str = Field(description="Blog article content")
+
 
     class ArticleCreateAPI(APIView):
 
