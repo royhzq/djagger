@@ -231,7 +231,7 @@ class MediaType(BaseModel):
         media = cls()
 
         if isinstance(model, (serializers.SerializerMetaclass, serializers.ListSerializer)):
-            model = SerializerConverter(s=model()).to_model()
+            model = SerializerConverter(s=model).to_model()
             
         schema = model.schema()
         schema = schema_set_examples(schema, model)
@@ -336,7 +336,7 @@ class Response(BaseModel):
     links : Optional[Dict[str, Union[Link, Reference]]]
 
     @classmethod
-    def _from(cls, model : Union[ModelMetaclass, serializers.SerializerMetaclass], content_type="application/json") -> 'Response':
+    def _from(cls, model : Union[ModelMetaclass, serializers.SerializerMetaclass, serializers.ListSerializer], content_type="application/json") -> 'Response':
         # By default if a pydantic model is passed, the only content type is application/json for MediaType
         # to allow multiple content in a Response object, a python dict needs to be passed manually.
         # via Response.parse_obj(my_dict)
@@ -413,8 +413,8 @@ class Operation(BaseModel):
                 continue
 
             # Converting serializers to pydantic models
-            if isinstance(request_schema, serializers.SerializerMetaclass):
-                request_schema = SerializerConverter(s=request_schema()).to_model()
+            if isinstance(request_schema, (serializers.SerializerMetaclass, serializers.ListSerializer)):
+                request_schema = SerializerConverter(s=request_schema).to_model()
 
             self.parameters += Parameter.to_parameters(request_schema, attr)
 
@@ -471,7 +471,7 @@ class Operation(BaseModel):
             return
 
         # Case where a pydantic model is passed, assumes only one media type i.e. application/json
-        if isinstance(request_body, (ModelMetaclass, serializers.SerializerMetaclass)):
+        if isinstance(request_body, (ModelMetaclass, serializers.SerializerMetaclass, serializers.ListSerializer)):
             self.requestBody = RequestBody(
                 description = request_body.__doc__,
                 content={
@@ -500,7 +500,7 @@ class Operation(BaseModel):
                     # validate for MediaType if a dict is given as the value of content
                     content[k] = MediaType(**v)
 
-                elif isinstance(v, (ModelMetaclass, serializers.SerializerMetaclass)):
+                elif isinstance(v, (ModelMetaclass, serializers.SerializerMetaclass, serializers.ListSerializer)):
                     content[k] = MediaType._from(v) 
 
                 else:
@@ -525,7 +525,7 @@ class Operation(BaseModel):
         response_schema = ViewAttributes.from_view(view, ViewAttributes.api.RESPONSE_SCHEMA, http_method)
 
         # When attribute is a pydantic model or serializer - assume 200 response only
-        if isinstance(response_schema, (ModelMetaclass, serializers.SerializerMetaclass)):
+        if isinstance(response_schema, (ModelMetaclass, serializers.SerializerMetaclass, serializers.ListSerializer)):
             responses = { 
                 '200': Response._from(response_schema)
             }
@@ -537,7 +537,7 @@ class Operation(BaseModel):
                 if not isinstance(status_code, str):
                     raise ValueError("key in response schema dict needs to be string")
 
-                if isinstance(model, (ModelMetaclass, serializers.SerializerMetaclass)):
+                if isinstance(model, (ModelMetaclass, serializers.SerializerMetaclass, serializers.ListSerializer)):
                     responses[status_code] = Response._from(model)
 
                 elif isinstance(model, Dict):

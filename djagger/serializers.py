@@ -72,11 +72,12 @@ def field_to_pydantic_args(f : fields.Field) -> Dict:
     
 class SerializerConverter(BaseModel):
     
-    """ Converter class to convert 
-    Serializer or ListSerializer into a pydantic model
+    """ Converter serializer instance of type ``Serializer`` or ``ListSerializer`` into a pydantic model.
+    If metaclass type ``SerializerMetaclass`` detected, converter will call an instance of the serializer to 
+    instantiate to `Serializer`` type.
     """
 
-    s : Union[serializers.Serializer, serializers.ListSerializer]
+    s : Union[serializers.SerializerMetaclass, serializers.Serializer, serializers.ListSerializer]
         
     class Config:
         arbitrary_types_allowed = True
@@ -154,7 +155,7 @@ class SerializerConverter(BaseModel):
     @classmethod
     def from_serializer(cls, s : serializers.Serializer) -> ModelMetaclass:
 
-        """ Converts a DRF Serializer type into a pydantic model.
+        """ Converts an instance of a DRF Serializer into a pydantic model.
         """
 
         name = s.__class__.__name__
@@ -230,6 +231,10 @@ class SerializerConverter(BaseModel):
         
         if isinstance(self.s, serializers.Serializer):
             return self.from_serializer(self.s)
+
+        if isinstance(self.s, serializers.SerializerMetaclass):
+            # Instantiates the serializer to be passed to ``from_serializer``
+            return self.from_serializer(self.s())
 
         
         
