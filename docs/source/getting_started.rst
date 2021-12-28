@@ -51,6 +51,7 @@ Features
 | ✔ All HTTP methods supported
 | ✔ Built-in Views for viewing generated docs
 | ✔ Granular customization when documenting individual Views
+| ✔ Supports Class-based Views and Function-based Views
 
 
 **Schema Driven Development** - Use ``pydantic`` to generate schema objects to document your Views. Your schemas can in turn be used to validate your requests and responses to ensure that they are consistent with your documentation.

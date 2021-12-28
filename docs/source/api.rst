@@ -5,7 +5,7 @@ API Reference
    :maxdepth: 2
    :caption: Contents:
 
-.. automodule:: djagger.schema
+.. automodule:: djagger.openapi
     :members:
 
 .. automodule:: djagger.enums
