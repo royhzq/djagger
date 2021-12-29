@@ -444,7 +444,6 @@ class Operation(BaseModel):
     def _extract_description(self, view : Type, http_method: HttpMethod):
 
         description = ViewAttributes.from_view(view, ViewAttributes.api.DESCRIPTION, http_method)
-
         if not description:
             # Try to retrieve from method docstring 
             operation = getattr(view, http_method.value, None)
@@ -732,7 +731,6 @@ class Path(BaseModel):
 Paths = Dict[str, Path]
 
 class Components(BaseModel):
-    # Replaces Definitions in Swagger 2.0
 
     schemas : Dict[str, Dict] = {}
     responses : Dict[str, Union[Response, Reference]] = {}

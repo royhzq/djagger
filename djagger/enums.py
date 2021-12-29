@@ -101,23 +101,12 @@ class DjaggerViewAttributes:
             "get_operation_id"
 
         """
-        
-        value = None 
 
         if http_method:
             operation_attr_value = self.retrieve_operation_attr_value(attr, http_method)
-            value =  getattr(view, operation_attr_value, getattr(view, attr, None))
-        else:
-            value =  getattr(view, attr, None)
-
-        # If failed to extract any value from FBV, look for parent class and attempt to extract
-        # from parent class attributes if parent class exists
-
-        if value == None and hasattr(view, 'cls'):
-            return self.from_view(view.cls, attr=attr, http_method=http_method)
-
-        return value
-            
+            return  getattr(view, operation_attr_value, getattr(view, attr, None))
+        
+        return getattr(view, attr, None)
 
     def operation(self, http_method : HttpMethod) -> DjaggerAttributeEnumType:
         """ Returns the DjaggerAttributeEnumType value for the corresponding HttpMethod"""
