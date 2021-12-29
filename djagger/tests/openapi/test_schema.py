@@ -12,13 +12,9 @@ from ...openapi import (
 )
 
 def test_document():
-
-    document = Document.generate(
-        app_names=['djagger'],
-        contact_email="example@example.com",
-        contact_url="www.example.com"
-    )
-    # print(document)
+    
+    document = Document()
+    assert document
 
 def test_media_type_from():
 

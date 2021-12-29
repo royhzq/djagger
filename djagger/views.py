@@ -10,25 +10,26 @@ import os
 
 @schema(methods=['GET'], djagger_exclude=True)
 def open_api_json(request : HttpRequest):
+    """ View for auto generated OpenAPI JSON document """
 
-    """ View for auto generated OpenAPI JSON document 
-    """
+    doc_settings = getattr(settings, 'DJAGGER_DOCUMENT', {})
+
     document = OpenAPIDoc.generate(
-        app_names = getattr(settings, 'DJAGGER_APP_NAMES', []),
-        tags = getattr(settings, 'DJAGGER_TAGS', []),
-        openapi = getattr(settings, 'DJAGGER_OPENAPI', "3.0.0"),
-        version = getattr(settings, 'DJAGGER_VERSION', "1.0.0"),
-        servers = getattr(settings, 'DJAGGER_SERVERS', []),
-        security = getattr(settings, 'DJAGGER_SECURITY', []),
-        title = getattr(settings, 'DJAGGER_TITLE', "Djagger OpenAPI Documentation"),
-        description = getattr(settings, 'DJAGGER_DESCRIPTION', ""),
-        terms_of_service = getattr(settings, 'DJAGGER_TERMS_OF_SERVICE', ""),
-        contact_name = getattr(settings, 'DJAGGER_CONTACT_NAME', ""),
-        contact_email = getattr(settings, 'DJAGGER_CONTACT_EMAIL', ""),
-        contact_url = getattr(settings, 'DJAGGER_CONTACT_URL', ""),
-        license_name = getattr(settings, 'DJAGGER_LICENSE_NAME', ""),
-        license_url = getattr(settings, 'DJAGGER_LICENSE_URL', ""),
-        x_tag_groups = getattr(settings, 'DJAGGER_X_TAG_GROUPS', [])
+        app_names = doc_settings.get('app_names', []),
+        tags = doc_settings.get('tags', []),
+        openapi = doc_settings.get('openapi', "3.0.0"),
+        version = doc_settings.get('version', "1.0.0"),
+        servers = doc_settings.get('servers', []),
+        security = doc_settings.get('security', []),
+        title = doc_settings.get('title', "Djagger OpenAPI Documentation"),
+        description = doc_settings.get('description', ""),
+        terms_of_service = doc_settings.get('terms_of_service', ""),
+        contact_name = doc_settings.get('contact_name', ""),
+        contact_email = doc_settings.get('contact_email', ""),
+        contact_url = doc_settings.get('contact_url', ""),
+        license_name = doc_settings.get('license_name', ""),
+        license_url = doc_settings.get('license_url', ""),
+        x_tag_groups = doc_settings.get('x_tag_groups', [])
     )
     
     response = JsonResponse(document)

@@ -406,6 +406,26 @@ def test_extract_responses():
     assert operation.responses.get('400')
     assert operation.responses.get('404')
 
+    # 5. Multiple responses with non-default content type
+    class View:
+        post_response_schema = {
+            ('200', 'application/json'): PostResponseSchema,
+            ('400', 'text/plain'): ErrorSchema,
+            ('404', 'application/octet-stream'): TestSerializer
+        }
+
+    operation = Operation()
+    operation._extract_responses(View, HttpMethod.POST)
+
+    assert operation.responses.get('200')
+    assert operation.responses.get('400')
+    assert operation.responses.get('404')
+    
+    assert 'application/json' in operation.responses['200'].content.keys()
+    assert 'text/plain' in operation.responses['400'].content.keys()
+    assert 'application/octet-stream' in operation.responses['404'].content.keys()
+
+
 def test_extract_parameters():
 
     # 1. No attribute

@@ -2,7 +2,7 @@
 Enums
 =====
 """
-from typing import Union, List, Any, Type
+from typing import Union, List, Any, Type, Callable
 from enum import Enum
 
 DJAGGER_HTTP_METHODS = 'djagger_http_methods' # FBV attribute name for http methods used in the FBV
@@ -75,9 +75,22 @@ class DjaggerViewAttributes:
         'DJAGGER_EXCLUDE':'djagger_exclude',
     }
 
-    def from_view(self, view: Type, attr_name : str, http_method : Union[HttpMethod, type(None)] = None) -> Any:
+    def retrieve_operation_attr_value(self, attr : str, http_method : HttpMethod) -> str:
+        """ Converts an API-level attribute value to the operation-level equivalent given a string attribute value ``attr`` and a given http method.
+        Example::
+            >>> self.retrieve_operation_attr_value('summary', HttMethod.GET)
+            'get_summary'
+        """
 
-        """ Given a view, the general attribute name, and a http method, extracts the attribute from the view starting at the operation-level attribute i.e. get_body_params.
+        attr_name = self.api(attr).name
+        operation_attr_enum = getattr(self, http_method.value)        
+        operation_attr_value = getattr(operation_attr_enum, attr_name)
+
+        return operation_attr_value
+
+    def from_view(self, view: Union[Type, Callable], attr : str, http_method : Union[HttpMethod, type(None)] = None) -> Any:
+
+        """ Given a FBV view or CBV view, the general attribute name, and a http method, extracts the attribute from the view starting at the operation-level attribute i.e. get_body_params.
         If it does not exist, try to extract at the API-level attribute i.e. body_params.
         If the attribute still does not exist, return None.
         If http_method is not passed, only extract the API-level attribute.
@@ -88,12 +101,23 @@ class DjaggerViewAttributes:
             "get_operation_id"
 
         """
-        self.api(attr_name)
-        if http_method:
-            operation_attr_value = f"{http_method.value}_{attr_name}" # e.g. get_body_params
-            return getattr(view, operation_attr_value, getattr(view, attr_name, None))
         
-        return getattr(view, attr_name, None)
+        value = None 
+
+        if http_method:
+            operation_attr_value = self.retrieve_operation_attr_value(attr, http_method)
+            value =  getattr(view, operation_attr_value, getattr(view, attr, None))
+        else:
+            value =  getattr(view, attr, None)
+
+        # If failed to extract any value from FBV, look for parent class and attempt to extract
+        # from parent class attributes if parent class exists
+
+        if value == None and hasattr(view, 'cls'):
+            return self.from_view(view.cls, attr=attr, http_method=http_method)
+
+        return value
+            
 
     def operation(self, http_method : HttpMethod) -> DjaggerAttributeEnumType:
         """ Returns the DjaggerAttributeEnumType value for the corresponding HttpMethod"""
@@ -103,20 +127,34 @@ class DjaggerViewAttributes:
         return op
 
     @classmethod
-    def prefix_attrs(cls, prefix : str):
-        """Prefixes view_attrs values with string prefix e.g. 'get_operation_id'"""
-        return { k: f"{prefix}_{v}" for k, v in cls.view_attrs.items()}
+    def prefix_attrs(cls, method_prefix : str, custom_prefix : str = ""):
+        """Prefixes view_attrs values with string prefix e.g. 'get_' in 'get_operation_id'"""
+        return { k: f"{custom_prefix}{method_prefix}_{v}" for k, v in cls.view_attrs.items()}
 
-    def __init__(self, *http_methods):
+    def __init__(self, custom_prefix : str, *http_methods):
 
+        # Handle custom view_attrs for case where custom_prefix provided
+        view_attrs = { k: f"{custom_prefix}{v}" for k, v in self.view_attrs.items()} 
+
+        self.custom_prefix=custom_prefix
         self.http_methods = http_methods
-        self.api = DjaggerAttributeEnumType('api', self.view_attrs)  # API-level attribute Enum e.g. 'body_params'
+        self.api = DjaggerAttributeEnumType('api', view_attrs)  # API-level attribute Enum e.g. 'body_params'
         self.attr_list = self.api.values()
 
         for http_method in http_methods:
             # Create operation-level attribute Enum for each operation e.g. 'get_body_params'
-            setattr(self, http_method, DjaggerAttributeEnumType(http_method, self.prefix_attrs(http_method)))
+            setattr(
+                self, 
+                http_method, 
+                DjaggerAttributeEnumType(
+                    http_method, 
+                    self.prefix_attrs(
+                        method_prefix=http_method, 
+                        custom_prefix=self.custom_prefix
+                    )
+                )
+            )
             self.attr_list += getattr(self, http_method).values()
 
 
-ViewAttributes = DjaggerViewAttributes(*HttpMethod.values())
+ViewAttributes = DjaggerViewAttributes("",*HttpMethod.values())

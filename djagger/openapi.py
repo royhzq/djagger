@@ -404,7 +404,7 @@ class Operation(BaseModel):
                 # only consider relevant for parameter attributes - attr name ending in '_params'
                 continue
 
-            if "body_params" in attr:
+            if ViewAttributes.api.BODY_PARAMS.value in attr:
                 # request body params handed by _extract_request_body()
                 continue
 
@@ -533,15 +533,38 @@ class Operation(BaseModel):
         # When attribute is a dict of responses, prepare dict of Response values
         elif isinstance(response_schema, Dict):
 
-            for status_code, model in response_schema.items():
-                if not isinstance(status_code, str):
-                    raise ValueError("key in response schema dict needs to be string")
+            for key, model in response_schema.items():
+                
+                status_code = "200"
+                content_type = "application/json" 
+
+                if isinstance(key, tuple):
+                    # Handle case where tuple is passed as key e.g.
+                    #  {
+                    #       ("200", "text/plain") : MyModel
+                    #  }
+                    # 
+                    if len(key) != 2:
+                        raise AttributeError("response schema dict key needs to be a tuple of length 2")
+
+                    status_code, content_type = key
+
+                    assert isinstance(status_code, str), "response schema status_code needs to be string type"
+                    assert isinstance(content_type, str), "response schema content_type needs to be string type"
+                    
+                elif isinstance(key, str):
+
+                    status_code = key
+
+                else:
+                    raise AttributeError("response schema dict key needs to be of tuple type or string")
 
                 if isinstance(model, (ModelMetaclass, serializers.SerializerMetaclass, serializers.ListSerializer)):
-                    responses[status_code] = Response._from(model)
+                    responses[status_code] = Response._from(model, content_type)
 
                 elif isinstance(model, Dict):
                     # For manual parsing if a Dict is passed instead of the expected ModelMetaclass or Serializer
+                    # Ignores any content_type set above. 
                     responses[status_code] = Response.parse_obj(model)
                         
         self.responses = responses
