@@ -423,8 +423,11 @@ class Operation(BaseModel):
         tags = ViewAttributes.from_view(view, ViewAttributes.api.TAGS, http_method)
 
         if not tags:
-            tags = [view.__module__.split(".")[0]] # Set tags as the app module name of the API as fallback
-
+            try:
+                tags = [view.cls.__module__.split(".")[0]] # Set tags as the app module name of the parent class as fallback
+            except AttributeError:
+                tags = [view.__module__.split(".")[0]] # Set tags as the app module name of the fbv as fallback
+                
         if tags:
             assert isinstance(tags, List), "tags attribute must be a list of strings"
             self.tags = tags
@@ -434,7 +437,11 @@ class Operation(BaseModel):
         summary = ViewAttributes.from_view(view, ViewAttributes.api.SUMMARY, http_method)
 
         if not summary:
-            summary = view.__name__     
+            # Fallback to getting summary from class parent
+            try:
+                summary = view.cls.__name__
+            except AttributeError:
+                summary = view.__name__     
 
         if summary:
             assert isinstance(summary, str), "summary must be string type"
@@ -452,6 +459,14 @@ class Operation(BaseModel):
                 
         if not description:
             description = view.__doc__
+
+        if not description:
+            # fallback toe get description from parent cbv docstring
+            # when view is a FBV
+            try:
+                description = view.cls.__doc__
+            except AttributeError:
+                pass
 
         if description:
             assert isinstance(description, str), "description must be string type"
@@ -674,7 +689,13 @@ class Path(BaseModel):
                         if not hasattr(view, 'options_response_schema'):
                             continue
 
-                    operation = Operation._from(view, http_method)
+                    view_func = getattr(view, http_method) # i.e. get(), post(), put() ...
+                    # Add the View class as an attribute 'cls' to the action view function
+                    # as a fallback reference. 
+                    if not hasattr(view_func, 'cls'):
+                        view_func.cls = view
+
+                    operation = Operation._from(view_func, http_method)
                     if not operation:
                         continue
 
@@ -704,6 +725,11 @@ class Path(BaseModel):
                     action_fbv_view = getattr(viewset_class, action, None)
                     if not action_fbv_view:
                         continue
+
+                    # Add the Viewset class as an attribute 'cls' to the action view function
+                    # as a fallback reference. 
+                    if not hasattr(action_fbv_view, 'cls'):
+                        action_fbv_view.cls = viewset_class
 
                     operation = Operation._from(action_fbv_view, http_method)
                     if not operation:
@@ -776,7 +802,7 @@ class Document(BaseModel):
         contact_url = "",
         license_name = "",
         license_url = "",
-        x_tag_groups : List[TagGroup]= []
+        **kwargs
     ) -> dict :
         """ Inspects URLPatterns in given list of apps to generate the openAPI json object for the Django project.
         Returns the JSON string object for the resulting OAS document.
@@ -830,7 +856,9 @@ class Document(BaseModel):
             servers=servers,
             tags=tags,
             paths=paths,
-            x_tag_groups=x_tag_groups,
         )
 
-        return document.dict(by_alias=True, exclude_none=True)
+        document_dict = document.dict(by_alias=True, exclude_none=True)
+        document_dict.update(kwargs) # Non OAS specification keys
+
+        return document_dict
