@@ -77,7 +77,9 @@ class DjaggerViewAttributes:
 
     def retrieve_operation_attr_value(self, attr : str, http_method : HttpMethod) -> str:
         """ Converts an API-level attribute value to the operation-level equivalent given a string attribute value ``attr`` and a given http method.
+
         Example::
+
             >>> self.retrieve_operation_attr_value('summary', HttMethod.GET)
             'get_summary'
         """
@@ -128,7 +130,7 @@ class DjaggerViewAttributes:
 
     @classmethod
     def prefix_attrs(cls, method_prefix : str, custom_prefix : str = ""):
-        """Prefixes view_attrs values with string prefix e.g. 'get_' in 'get_operation_id'"""
+        """Prefixes view_attrs values with string prefix e.g. ``get_`` in 'get_operation_id'"""
         return { k: f"{custom_prefix}{method_prefix}_{v}" for k, v in cls.view_attrs.items()}
 
     def __init__(self, custom_prefix : str, *http_methods):
