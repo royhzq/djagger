@@ -56,7 +56,7 @@ Documenting path, query and cookie parameters:
 
 .. raw:: html 
 
-    <p>See the generated docs for this example <a href="" target="_blank">here</a>, and the code <a href="" target="_blank">here</a>.</p>
+    <p>See the generated docs for this example <a href="https://djagger-example.netlify.app/#tag/Blog/paths/~1blog~1articles~1{year}~1/get" target="_blank">here</a>, and the code <a href="https://github.com/royhzq/djagger-example/blob/285af0109155f6ef13e94302a0d40749501388cf/Blog/views.py#L70" target="_blank">here</a>.</p>
 
 Request Body
 ~~~~~~~~~~~~
@@ -80,7 +80,7 @@ Document request body with ``body_params`` or ``<http_method>_body_params``.
 
 .. raw:: html 
 
-    <p>See the generated docs for this example <a href="" target="_blank">here</a>, and the code <a href="" target="_blank">here</a>.</p>
+    <p>See the generated docs for this example <a href="https://djagger-example.netlify.app/#tag/Blog/paths/~1blog~1articles~1delete/delete" target="_blank">here</a>, and the code <a href="https://github.com/royhzq/djagger-example/blob/285af0109155f6ef13e94302a0d40749501388cf/Blog/views.py#L62" target="_blank">here</a>.</p>
 
 
 By default, the media type documented is ``application/json`` if a pydantic model or a DRF serializer is passed as the value for ``body_params``. To customize for multiple media types or to change the default media type, pass in a dictionary with the string media type value as the key and the schema  (pydantic model / DRF serializer) as the value. 
@@ -110,7 +110,7 @@ By default, the media type documented is ``application/json`` if a pydantic mode
 
 .. raw:: html 
 
-    <p>See the generated docs for this example <a href="" target="_blank">here</a>, and the code <a href="" target="_blank">here</a>.</p>
+    <p>See the generated docs for this example <a href="https://djagger-example.netlify.app/#tag/Toy/paths/~1toy~1{toyId}~1uploadImage/post" target="_blank">here</a>, and the code <a href="https://github.com/royhzq/djagger-example/blob/285af0109155f6ef13e94302a0d40749501388cf/Toy/views.py#L112" target="_blank">here</a>.</p>
 
 
 Response Objects
@@ -152,13 +152,15 @@ Response objects are documented using the attribute ``response_schema`` or ``<ht
 
 .. raw:: html 
 
-    <p>See the generated docs for this example <a href="" target="_blank">here</a>, and the code <a href="" target="_blank">here</a>.</p>
+    <p>See the generated docs for this example <a href="https://djagger-example.netlify.app/#tag/Blog/paths/~1blog~1articles~1create/post" target="_blank">here</a>, and the code <a href="https://github.com/royhzq/djagger-example/blob/285af0109155f6ef13e94302a0d40749501388cf/Blog/views.py#L45" target="_blank">here</a>.</p>
 
 
 Multiple Responses
 ~~~~~~~~~~~~~~~~~~
 
 For multiple responses, or to change the default response, you may pass in a dictionary to ``response_schema`` with HTTP status code as a key and a pydantic model or DRF serializer as the value. 
+
+To customize the content type of the response, pass in a string tuple containing the status code and the content type as the key.
 
 .. code:: python
 
@@ -168,7 +170,8 @@ For multiple responses, or to change the default response, you may pass in a dic
         query_params = LoginRequestSchema
         response_schema = {
             "200":LoginSuccessSchema,
-            "400":LoginErrorSchema
+            "400":LoginErrorSchema,
+            ("403", "text/plain"): ForbiddenSchema
         }
 
         def get(self, request):
@@ -177,7 +180,7 @@ For multiple responses, or to change the default response, you may pass in a dic
 
 .. raw:: html 
 
-    <p>See the generated docs for this example <a href="" target="_blank">here</a>, and the code <a href="" target="_blank">here</a>.</p>
+    <p>See the generated docs for this example <a href="https://djagger-example.netlify.app/#tag/User/paths/~1user~1login/get" target="_blank">here</a>, and the code <a href="https://github.com/royhzq/djagger-example/blob/285af0109155f6ef13e94302a0d40749501388cf/User/views.py#L38" target="_blank">here</a>.</p>
 
 
 Response Headers
@@ -213,7 +216,7 @@ To document response headers, add ``headers`` to the ``Config`` class in the pyd
 
 .. raw:: html 
 
-    <p>See the generated docs for this example <a href="" target="_blank">here</a>, and the code <a href="" target="_blank">here</a>.</p>
+    <p>See the generated docs for this example <a href="https://djagger-example.netlify.app/#tag/User/paths/~1user~1login/get" target="_blank">here</a>, and the code <a href="https://github.com/royhzq/djagger-example/blob/285af0109155f6ef13e94302a0d40749501388cf/User/views.py#L38" target="_blank">here</a>.</p>
 
 
 Schema Examples
@@ -265,7 +268,7 @@ Examples defined this way only apply to documenting request bodies and responses
 
 .. raw:: html 
 
-    <p>See the generated docs for this example <a href="" target="_blank">here</a>, and the code <a href="" target="_blank">here</a>.</p>
+    <p>See the generated docs for this example <a href="https://djagger-example.netlify.app/#tag/User/paths/~1user~1/post" target="_blank">here</a>, and the code <a href="https://github.com/royhzq/djagger-example/blob/285af0109155f6ef13e94302a0d40749501388cf/User/views.py#L16" target="_blank">here</a>.</p>
 
 Defining examples for path, query, header and cookie parameters are done within the ``Field`` itself. For example:
 
@@ -322,7 +325,7 @@ To document nested schemas, you may use pydantic models as field types. This all
 
 .. raw:: html 
 
-    <p>See the generated docs for this example <a href="" target="_blank">here</a>, and the code <a href="" target="_blank">here</a>.</p>
+    <p>See the generated docs for this example <a href="https://djagger-example.netlify.app/#tag/Toy/paths/~1toy~1/post" target="_blank">here</a>, and the code <a href="https://github.com/royhzq/djagger-example/blob/285af0109155f6ef13e94302a0d40749501388cf/Toy/schemas.py#L20" target="_blank">here</a>.</p>
 
 
 Non-object Schemas
@@ -355,7 +358,7 @@ Following from the example above:
 
 .. raw:: html 
 
-    <p>See the generated docs for this example <a href="" target="_blank">here</a>, and the code <a href="" target="_blank">here</a>.</p>
+    <p>See the generated docs for this example <a href="https://djagger-example.netlify.app/#tag/Toy/paths/~1toy~1findByStatus/get" target="_blank">here</a>, and the code <a href="https://github.com/royhzq/djagger-example/blob/285af0109155f6ef13e94302a0d40749501388cf/Toy/views.py#L44" target="_blank">here</a>.</p>
 
 
 List of Djagger View attributes
@@ -453,7 +456,7 @@ The available HTTP method names for the prefix are ``get``, ``post``, ``patch``,
 
 .. raw:: html 
 
-    <p>See the generated docs for this example <a href="" target="_blank">here</a>, and the code <a href="" target="_blank">here</a>.</p>
+    <p>See the generated docs for this example <a href="https://djagger-example.netlify.app/#tag/Toy/paths/~1toy~1{toyId}/get" target="_blank">here</a>, and the code <a href="https://github.com/royhzq/djagger-example/blob/285af0109155f6ef13e94302a0d40749501388cf/Toy/views.py#L74" target="_blank">here</a>.</p>
 
 
 Function-based Views
@@ -466,9 +469,6 @@ Djagger supports documenting function-based views (FBV). For FBVs, add the decor
     from djagger.decorators import schema
     from typing import List
 
-
-    class ArticleCookieSchema(Schema):
-        username : str
 
     class AuthorSchema(Schema):
         first_name : str
@@ -506,7 +506,7 @@ Djagger supports documenting function-based views (FBV). For FBVs, add the decor
 
 .. raw:: html 
 
-    <p>See the generated docs for this example <a href="" target="_blank">here</a>, and the code <a href="" target="_blank">here</a>.</p>
+    <p>See the generated docs for this example <a href="https://djagger-example.netlify.app/#tag/Blog/paths/~1blog~1author/get" target="_blank">here</a>, and the code <a href="https://github.com/royhzq/djagger-example/blob/285af0109155f6ef13e94302a0d40749501388cf/Blog/views.py#L82" target="_blank">here</a>.</p>
 
 
 Using Serializers
@@ -541,8 +541,70 @@ For example:
 
 .. raw:: html 
 
-    <p>See the generated docs for this example <a href="" target="_blank">here</a>, and the code <a href="" target="_blank">here</a>.</p>
+    <p>See the generated docs for this example <a href="https://djagger-example.netlify.app/#tag/Blog/paths/~1blog~1articles~1update/put" target="_blank">here</a>, and the code <a href="https://github.com/royhzq/djagger-example/blob/285af0109155f6ef13e94302a0d40749501388cf/Blog/views.py#L54" target="_blank">here</a>.</p>
 
+Generic Views
+-------------
+
+For generic views, if a ``serializer_class`` attribute is defined for the generic view, Djagger will treat it as a ``response_schema`` attribute. Setting ``response_schema`` directly in the generic view will override this. Other than that, documenting generic views is the same as a regular class-based view.
+
+.. code:: python
+
+    class CategoryList(generics.ListCreateAPIView):
+        """Example Generic View Documentation"""
+
+        serializer_class = CategorySerializer(many=True)
+        get_summary = "Category List"
+        post_summary = "Category List Create"
+
+        def list(self, request):
+            ...
+            return Response({})
+
+        def create(self, request):
+            ...
+            return Response({})
+
+.. raw:: html 
+
+    <p>See the generated docs for this example <a href="https://djagger-example.netlify.app/#tag/Blog/paths/~1blog~1categories~1/get" target="_blank">here</a>, and the code <a href="https://github.com/royhzq/djagger-example/blob/285af0109155f6ef13e94302a0d40749501388cf/Blog/views.py#L106" target="_blank">here</a>.</p>
+
+
+
+Viewsets
+--------
+
+Documenting DRF viewsets is supported. To document each viewset action e.g. ``list()``, ``create()``, decorate the action method with the ``@schema`` decorator similar to how a function-based view is documented in Djagger. 
+
+For viewsets, the parent viewset class attributes can also be used for documenting the actions, and they will apply to all actions under the viewset. The ``@schema`` values will take priority over the parent class djagger atributes.
+
+.. code:: python
+
+    class CategoryViewset(viewsets.ViewSet):
+        """Example Viewset documentation"""
+        
+        response_schema = CategoryListSchema
+
+        @schema(
+            methods=['GET'],
+            summary="List Categories",
+        )
+        def list(self, request):
+            ...
+            return Response({})
+
+        @schema(
+            methods=['GET'],
+            summary="Get Category",
+            response_schema=CategorySerializer,
+        )
+        def retrieve(self, retrieve):
+            ...
+            return Response({})
+
+.. raw:: html 
+
+    <p>See the generated docs for this example <a href="https://djagger-example.netlify.app/#tag/Blog/paths/~1cat~1/get" target="_blank">here</a>, and the code <a href="https://github.com/royhzq/djagger-example/blob/285af0109155f6ef13e94302a0d40749501388cf/Blog/views.py#L121" target="_blank">here</a>.</p>
 
 
 Document Generation
@@ -554,42 +616,43 @@ To see the generated documentation, ensure that the Djagger URLs are installed c
 Configuring the built-in Djagger views
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Configuration for the built-in document view is managed in ``settings.py``. 
-See table below for the valid parameters in ``settings.py``.
+Configuration for the built-in document view is managed in ``settings.py`` via the dictionary parameter ``DJAGGER_DOCUMENT``.
+See table below for the valid dict keys in ``settings.DJAGGER_DOCUMENT``.
 
-+---------------------------+----------------+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-| Variable                  | Type           | Description                                                                                                                                                                                                                                                 |
-+===========================+================+=============================================================================================================================================================================================================================================================+
-| DJAGGER_APP_NAMES         | ``List[str]``  | Required list of string names for the Django apps to be documented. Apps not included in this list will not be documented.                                                                                                                                  |
-+---------------------------+----------------+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-| DJAGGER_TAGS              | ``List[dict]`` | List of dictionary objects with ``name`` and ``description`` fields representing the OpenAPI Tag object. By default, the list of declared app names in ``DJAGGER_APP_NAMES`` will be created as the OpenAPI ``Tags``, unless overridden by this variable.   |
-+---------------------------+----------------+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-| DJAGGER_OPENAPI           | ``str``        | OpenAPI 3 version. Defaults to ``3.0.0``.                                                                                                                                                                                                                   |
-+---------------------------+----------------+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-| DJAGGER_VERSION           | ``str``        | Project version. Defaults to ``1.0.0``.                                                                                                                                                                                                                     |
-+---------------------------+----------------+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-| DJAGGER_SERVERS           | ``List[dict]`` | List of dictionary Server objects. Each object is a dictionary with ``url`` and ``description`` string fields.                                                                                                                                              |
-+---------------------------+----------------+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-| DJAGGER_SECURITY          | ``List[dict]`` | List of dictionary Security objects.                                                                                                                                                                                                                        |
-+---------------------------+----------------+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-| DJAGGER_TITLE             | ``str``        | Title of documentation.                                                                                                                                                                                                                                     |
-+---------------------------+----------------+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-| DJAGGER_DESCRIPTION       | ``str``        | Description of documentation.                                                                                                                                                                                                                               |
-+---------------------------+----------------+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-| DJAGGER_TERMS_OF_SERVICE  | ``str``        | Terms of service.                                                                                                                                                                                                                                           |
-+---------------------------+----------------+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-| DJAGGER_CONTACT_NAME      | ``str``        | Contact name.                                                                                                                                                                                                                                               |
-+---------------------------+----------------+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-| DJAGGER_CONTACT_EMAIL     | ``str``        | Contact email.                                                                                                                                                                                                                                              |
-+---------------------------+----------------+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-| DJAGGER_CONTACT_URL       | ``str``        | Contact URL.                                                                                                                                                                                                                                                |
-+---------------------------+----------------+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-| DJAGGER_LICENSE_NAME      | ``str``        | Name of license                                                                                                                                                                                                                                             |
-+---------------------------+----------------+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-| DJAGGER_LICENSE_URL       | ``str``        | URL of license                                                                                                                                                                                                                                              |
-+---------------------------+----------------+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-| DJAGGER_X_TAG_GROUPS      | ``List[Dict]`` | Higher groupings for Tag objects. List of dictionary objects with keys  ``name`` for the naming of the grouping and ``tags`` which is a list of string tag names. Not part of OpenAPI 3 specification.                                                      |
-+---------------------------+----------------+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
++-------------------+------------+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| Keys              | Type       | Description                                                                                                                                                                                                                                |
++===================+============+============================================================================================================================================================================================================================================+
+| app_names         | List[str]  | Required list of string names for the Django apps to be documented. Apps not included in this list will not be documented.                                                                                                                 |
++-------------------+------------+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| tags              | List[dict] | List of dictionary objects with name and description fields representing the OpenAPI Tag object. By default, the list of declared app names in DJAGGER_APP_NAMES will be created as the OpenAPI Tags, unless overridden by this variable.  |
++-------------------+------------+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| openapi           | str        | OpenAPI 3 version. Defaults to 3.0.0.                                                                                                                                                                                                      |
++-------------------+------------+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| version           | str        | Project version. Defaults to 1.0.0.                                                                                                                                                                                                        |
++-------------------+------------+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| servers           | List[dict] | List of dictionary Server objects. Each object is a dictionary with url and description string fields.                                                                                                                                     |
++-------------------+------------+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| security          | List[dict] | List of dictionary Security objects.                                                                                                                                                                                                       |
++-------------------+------------+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| title             | str        | Title of documentation.                                                                                                                                                                                                                    |
++-------------------+------------+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| description       | str        | Description of documentation.                                                                                                                                                                                                              |
++-------------------+------------+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| terms_of_service  | str        | Terms of service.                                                                                                                                                                                                                          |
++-------------------+------------+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| contact_name      | str        | Contact name.                                                                                                                                                                                                                              |
++-------------------+------------+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| contact_email     | str        | Contact email.                                                                                                                                                                                                                             |
++-------------------+------------+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| contact_url       | str        | Contact URL.                                                                                                                                                                                                                               |
++-------------------+------------+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| license_name      | str        | Name of license                                                                                                                                                                                                                            |
++-------------------+------------+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| license_url       | str        | URL of license                                                                                                                                                                                                                             |
++-------------------+------------+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| kwargs            |            | Additional key/value pairs to be appended to the generated JSON document. Usually used for ``x-`` fields for specific document generating clients.                                                                                         |
++-------------------+------------+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+
 
 **Example Djagger Document settings**
 
@@ -597,42 +660,40 @@ See table below for the valid parameters in ``settings.py``.
 
     # settings.py 
 
-    DJAGGER_VERSION = "1.0.0"
-    DJAGGER_TITLE = "Djagger Toy Store"
-    DJAGGER_DESCRIPTION = """
-    This is a sample OpenAPI 3.0 schema generated from a Django project using Djagger.
+    DJAGGER_DOCUMENT = {
+        "version" : "1.0.0",
+        "title" : "Djagger Toy Store",
+        "description" : """This is a sample OpenAPI 3.0 schema generated from a Django project using Djagger. 
 
-    View the Django source code on Github: https://github.com/royhzq/djagger-example
+    View the Django project that generated this document on Github: https://github.com/royhzq/djagger-example.
 
-    View the documentation for Djagger: https://github.com/royhzq/djagger
-
-    """
-    DJAGGER_LICENSE_NAME = "MIT"
-    DJAGGER_APP_NAMES = [ 'Toy', 'Store', 'User', 'Blog']
-    DJAGGER_TAGS = [
-        { 'name':'Toy', 'description': 'Toy App'},
-        { 'name':'Store', 'description': 'Store App'},
-        { 'name':'User', 'description': 'User App'},
-        { 'name':'Blog', 'description': 'Blog App'},
-    ]
-    DJAGGER_X_TAG_GROUPS = [
-        { 'name':'GENERAL', 'tags': ['Toy', 'Store']},
-        { 'name':'USER MANAGEMENT', 'tags': ['User']}
-    ]
-    DJAGGER_SERVERS = [
-        {
-            "url":"https://example.org",
-            "description":"Production API server"
-        },
-        {
-            "url":"https://staging.example.org",
-            "description":"Staging API server"
-        }
-    ]
-
+        """,
+        "license_name" : "MIT",
+        "app_names" : [ 'Toy', 'Store', 'User', 'Blog'],
+        "tags" : [
+            { 'name':'Toy', 'description': 'Toy App'},
+            { 'name':'Store', 'description': 'Store App'},
+            { 'name':'User', 'description': 'User App'},
+            { 'name':'Blog', 'description': 'Blog App'},
+        ],
+        "x-tagGroups" : [
+            { 'name':'GENERAL', 'tags': ['Toy', 'Store', 'Blog']},
+            { 'name':'USER MANAGEMENT', 'tags': ['User']}
+        ],
+        "servers" : [
+            {
+                "url":"https://example.org",
+                "description":"Production API server"
+            },
+            {
+                "url":"https://staging.example.org",
+                "description":"Staging API server"
+            }
+        ],
+    }
 .. raw:: html 
 
-    <p>See the generated docs for this example <a href="" target="_blank">here</a>, and the code <a href="" target="_blank">here</a>.</p>
+    <p>See the generated docs for this example <a href="https://djagger-example.netlify.app/" target="_blank">here</a>, and the code <a href="https://github.com/royhzq/djagger-example/blob/285af0109155f6ef13e94302a0d40749501388cf/djagger_example/settings.py#L134" target="_blank">here</a>.</p>
 
 Customized documentation views
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -647,18 +708,28 @@ To create your own documentation view, generate the document via Djagger's ``Doc
     def custom_doc_view(request):
 
         """ Custom documentation View for auto generated OpenAPI JSON document """
-        
-        document : dict = Document.generate(
-            app_names = [ 'Toy', 'Store', 'User', 'Blog'],
-            tags = [
+
+        doc_settings = {
+            "version" : "1.0.0",
+            "title" : "Djagger Toy Store",
+            "description" : """This is a sample OpenAPI 3.0 schema generated from a Django project using Djagger. 
+
+        View the Django project that generated this document on Github: https://github.com/royhzq/djagger-example.
+
+            """,
+            "license_name" : "MIT",
+            "app_names" : [ 'Toy', 'Store', 'User', 'Blog'],
+            "tags" : [
                 { 'name':'Toy', 'description': 'Toy App'},
                 { 'name':'Store', 'description': 'Store App'},
                 { 'name':'User', 'description': 'User App'},
                 { 'name':'Blog', 'description': 'Blog App'},
             ],
-            openapi = "3.0.0",
-            version = "1.0.0",
-            servers = [
+            "x-tagGroups" : [
+                { 'name':'GENERAL', 'tags': ['Toy', 'Store', 'Blog']},
+                { 'name':'USER MANAGEMENT', 'tags': ['User']}
+            ],
+            "servers" : [
                 {
                     "url":"https://example.org",
                     "description":"Production API server"
@@ -668,21 +739,10 @@ To create your own documentation view, generate the document via Djagger's ``Doc
                     "description":"Staging API server"
                 }
             ],
-            security = [],
-            title = "Djagger Toy Store",
-            description = """This is a sample description""",
-            terms_of_service = "",
-            contact_name = "",
-            contact_email = "",
-            contact_url = "",
-            license_name = "",
-            license_url = "",
-            x_tag_groups = [
-                { 'name':'GENERAL', 'tags': ['Toy', 'Store']},
-                { 'name':'USER MANAGEMENT', 'tags': ['User']}
-            ]
-        )
-            
+        }
+
+        document : dict = Document.generate(**doc_settings)
+
         response = JsonResponse(document)
         response['Cache-Control'] = "no-cache, no-store, must-revalidate"
         return response

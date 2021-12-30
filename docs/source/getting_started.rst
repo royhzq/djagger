@@ -88,7 +88,7 @@ Simple GET API Example
 
 .. raw:: html 
 
-    <p>See the generated docs <a href="" target="_blank">here</a>, and the code <a href="" target="_blank">here</a>.</p>
+    <p>See the generated docs <a href="https://djagger-example.netlify.app/#tag/Blog/paths/~1blog~1articles~1random/get" target="_blank">here</a>, and the code <a href="https://github.com/royhzq/djagger-example/blob/285af0109155f6ef13e94302a0d40749501388cf/Blog/views.py#L26" target="_blank">here</a>.</p>
 
 
 Simple POST API Example
@@ -124,4 +124,4 @@ Simple POST API Example
 
 .. raw:: html 
 
-    <p>See the generated docs <a href="" target="_blank">here</a>, and the code <a href="" target="_blank">here</a>.</p>
+    <p>See the generated docs <a href="https://djagger-example.netlify.app/#tag/Blog/paths/~1blog~1articles~1create/post" target="_blank">here</a>, and the code <a href="https://github.com/royhzq/djagger-example/blob/285af0109155f6ef13e94302a0d40749501388cf/Blog/views.py#L45" target="_blank">here</a>.</p>
