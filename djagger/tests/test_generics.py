@@ -2,6 +2,7 @@ from rest_framework import serializers
 from pydantic import BaseModel
 from ..generics import set_response_schema_from_serializer_class
 
+
 def test_set_response_schema_from_serializer_class_1():
 
     # Test successful setting of response schema from serializer_class
@@ -10,12 +11,12 @@ def test_set_response_schema_from_serializer_class_1():
         field = serializers.CharField()
 
     class TestView:
-        serializer_class=TestSerializer
+        serializer_class = TestSerializer
 
     set_response_schema_from_serializer_class(TestView)
 
     assert TestView.response_schema == TestView.serializer_class
-    
+
 
 def test_set_response_schema_from_serializer_class_2():
 
@@ -26,11 +27,11 @@ def test_set_response_schema_from_serializer_class_2():
         field = serializers.CharField()
 
     class TestView:
-        serializer_class=None
+        serializer_class = None
 
     set_response_schema_from_serializer_class(TestView)
 
-    assert not hasattr(TestView, 'response_schema')
+    assert not hasattr(TestView, "response_schema")
 
 
 def test_set_response_schema_from_serializer_class_3():
@@ -39,14 +40,14 @@ def test_set_response_schema_from_serializer_class_3():
     # when response_schema is already set
 
     class TestResponseSchema(BaseModel):
-        field2 : str
+        field2: str
 
     class TestSerializer(serializers.Serializer):
         field = serializers.CharField()
 
     class TestView:
-        serializer_class=TestSerializer
-        response_schema=TestResponseSchema
+        serializer_class = TestSerializer
+        response_schema = TestResponseSchema
 
     set_response_schema_from_serializer_class(TestView)
 

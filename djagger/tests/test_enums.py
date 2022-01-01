@@ -1,5 +1,6 @@
 from ..enums import HttpMethod, DjaggerViewAttributes, ViewAttributes
 
+
 def test_djagger_view_attributes():
     """Test creation of ViewAttributes with custom prefix"""
 

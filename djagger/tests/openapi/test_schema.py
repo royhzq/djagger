@@ -1,80 +1,67 @@
 from pydantic import BaseModel
 
-from ...enums import (
-    HttpMethod
-)
+from ...enums import HttpMethod
 
-from ...openapi import (
-    MediaType,
-    Operation,
-    Path,
-    Document
-)
+from ...openapi import MediaType, Operation, Path, Document
+
 
 def test_document():
-    
+
     document = Document()
     assert document
 
-def test_media_type_from():
 
+def test_media_type_from():
     class N(BaseModel):
-        value3 : str
+        value3: str
 
     class M(BaseModel):
-        value1 : str
-        value2 : str
-        n : N
+        value1: str
+        value2: str
+        n: N
 
         @classmethod
         def example(cls):
-            return cls(
-                value1="value1",
-                value2="value2",
-                n=N(value3="value3")
-            )
+            return cls(value1="value1", value2="value2", n=N(value3="value3"))
 
     media = MediaType._from(M)
     assert media.dict(by_alias=True)
 
+
 def test_operation_from():
-
     class BodyParams(BaseModel):
-        """ Test request body
-        """
-        value1 : str
-        value2 : str
+        """Test request body"""
 
-    class View():
+        value1: str
+        value2: str
+
+    class View:
 
         post_body_params = BodyParams
 
         def post(self):
             return None
-    
-    operation = Operation._from(View, HttpMethod('post'))
+
+    operation = Operation._from(View, HttpMethod("post"))
     assert operation.dict(by_alias=True)
 
-def test_path_create():
 
+def test_path_create():
     class BodyParams(BaseModel):
-        """ Test request body
-        """
-        value1 : str
-        value2 : str
+        """Test request body"""
+
+        value1: str
+        value2: str
 
     class ResponseSchema(BaseModel):
-        """ Test response schema
-        """
+        """Test response schema"""
+
         msg: str
 
-    class View():
+    class View:
 
         post_body_params = BodyParams
-        response_schema = {
-            "200":ResponseSchema,
-            "400":ResponseSchema
-        }
+        response_schema = {"200": ResponseSchema, "400": ResponseSchema}
 
         def post(self):
             return None

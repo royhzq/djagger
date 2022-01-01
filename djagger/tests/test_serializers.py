@@ -4,6 +4,7 @@
 from rest_framework import fields, serializers
 from ..serializers import SerializerConverter
 
+
 def test_all_primiitive_fields():
 
     # Test serializer with basic field types
@@ -27,8 +28,8 @@ def test_all_primiitive_fields():
         datefield = fields.DateField()
         timefield = fields.TimeField()
         durationfield = fields.DurationField()
-        choicefield = fields.ChoiceField(choices=[('a','a')])
-        multiplechoicefield = fields.MultipleChoiceField(choices=[('a','a')])
+        choicefield = fields.ChoiceField(choices=[("a", "a")])
+        multiplechoicefield = fields.MultipleChoiceField(choices=[("a", "a")])
         filefield = fields.FileField()
         imagefield = fields.ImageField()
 
@@ -37,14 +38,12 @@ def test_all_primiitive_fields():
         hstorefield = fields.HStoreField()
         jsonfield = fields.JSONField()
 
-
     model = SerializerConverter(s=TestSerializer()).to_model()
 
     assert model.schema()
 
 
 def test_nested_serializers():
-
     class Nested(serializers.Serializer):
         field = fields.CharField()
 
@@ -55,8 +54,8 @@ def test_nested_serializers():
 
     assert model.schema()
 
-def test_nested_serializers_many():
 
+def test_nested_serializers_many():
     class Nested(serializers.Serializer):
         field = fields.CharField()
 
@@ -66,9 +65,9 @@ def test_nested_serializers_many():
     model = SerializerConverter(s=TestSerializer()).to_model()
 
     assert model.schema()
-    
-def test_nested_list_fields():
 
+
+def test_nested_list_fields():
     class L2(serializers.Serializer):
         char = fields.CharField()
         number = fields.IntegerField()
@@ -84,19 +83,17 @@ def test_nested_list_fields():
 
     model = SerializerConverter(s=TestSerializer()).to_model()
     assert model.schema()
-    
-def test_list_serializer():
 
+
+def test_list_serializer():
     class TestSerializer(serializers.Serializer):
-        pk = fields.IntegerField()        
+        pk = fields.IntegerField()
 
     model = SerializerConverter(s=TestSerializer(many=True), max_length=4).to_model()
     assert model.schema()
 
     # Directly from ListSerializer
     model = SerializerConverter(
-        s=serializers.ListSerializer(
-            child=TestSerializer()
-        )
+        s=serializers.ListSerializer(child=TestSerializer())
     ).to_model()
     assert model.schema()
