@@ -11,7 +11,7 @@ def field_to_pydantic_args(f: fields.Field) -> Dict:
     to pydantic.create_model() field configs.
     """
 
-    args: Dict = {"extra": {}}
+    args: Dict = {}
 
     if hasattr(f, "label"):
         args["alias"] = f.label
@@ -20,10 +20,10 @@ def field_to_pydantic_args(f: fields.Field) -> Dict:
         args["description"] = f.help_text
 
     if hasattr(f, "read_only"):
-        args["extra"]["readonly"] = f.read_only
+        args["readOnly"] = f.read_only
 
     if hasattr(f, "write_only"):
-        args["extra"]["writeonly"] = f.write_only
+        args["writeOnly"] = f.write_only
 
     if hasattr(f, "format"):
         args["format"] = f.format
@@ -64,7 +64,7 @@ def field_to_pydantic_args(f: fields.Field) -> Dict:
     # choice fields
     if hasattr(f, "choices"):
         # choices attr is a list of (key, display_name) tuples.
-        args["extra"]["choices"] = f.choices
+        args["enum"] = f.choices
 
     return args
 

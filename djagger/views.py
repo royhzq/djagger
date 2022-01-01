@@ -4,17 +4,17 @@ from django.conf import settings
 from django.urls import reverse
 
 from .decorators import schema
-from .openapi import Document as OpenAPIDoc
+from .openapi import Document
 
 import os
 
 
 @schema(methods=["GET"], djagger_exclude=True)
 def open_api_json(request: HttpRequest):
-    """ View for auto generated OpenAPI JSON document """
+    """View for auto generated OpenAPI JSON document"""
 
     doc_settings = getattr(settings, "DJAGGER_DOCUMENT", {})
-    document = OpenAPIDoc.generate(**doc_settings)
+    document = Document.generate(**doc_settings)
 
     response = JsonResponse(document)
     response["Cache-Control"] = "no-cache, no-store, must-revalidate"

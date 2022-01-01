@@ -13,6 +13,7 @@ from .utils import schema_set_examples, get_url_patterns, model_field_schemas
 from .generics import set_response_schema_from_serializer_class
 from .enums import (
     HttpMethod,
+    ParameterLocation,
     ViewAttributes,
     DjaggerAttributeEnumType,
     DJAGGER_HTTP_METHODS,
@@ -345,11 +346,15 @@ class Parameter(BaseModel):
             if definitions:
                 schema = Reference.dereference(schema, definitions)
 
+            location: Optional[str] = attr.location()
+
             param = cls(
                 name=schema.get("title", ""),
                 description=schema.get("description", ""),
                 in_=attr.location(),
-                required=schema.get("required", False),
+                required=True
+                if location == ParameterLocation.PATH
+                else schema.get("required", False),
                 deprecated=schema.get("deprecated", False),
                 allowReserved=schema.get("allowReserved", False),
                 style=schema.get("style"),
@@ -919,7 +924,7 @@ class Document(BaseModel):
         description="",
         terms_of_service="",
         contact_name=None,
-        contact_email="",
+        contact_email="example@example.com",
         contact_url="",
         license_name="",
         license_url="",

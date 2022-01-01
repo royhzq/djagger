@@ -26,6 +26,15 @@ class HttpMethod(str, Enum):
         return [member.value for member in cls.__members__.values()]
 
 
+class ParameterLocation(str, Enum):
+
+    PATH = "path"
+    QUERY = "query"
+    HEADER = "header"
+    COOKIE = "cookie"
+    BODY = "body"
+
+
 class DjaggerAttributeEnumType(str, Enum):
 
     """Enum type with helper class methods to initialize View-level and operation-level djagger view attributes as enums"""
@@ -43,11 +52,11 @@ class DjaggerAttributeEnumType(str, Enum):
     def location(self) -> Optional[str]:
         """Returns the 'in' location value for parameters"""
         location_map = {
-            "PATH_PARAMS": "path",
-            "QUERY_PARAMS": "query",
-            "HEADER_PARAMS": "header",
-            "COOKIE_PARAMS": "cookie",
-            "BODY_PARAMS": "body",
+            "PATH_PARAMS": ParameterLocation.PATH.value,
+            "QUERY_PARAMS": ParameterLocation.QUERY.value,
+            "HEADER_PARAMS": ParameterLocation.HEADER.value,
+            "COOKIE_PARAMS": ParameterLocation.COOKIE.value,
+            "BODY_PARAMS": ParameterLocation.BODY.value,
         }
 
         return location_map.get(self.name, None)
