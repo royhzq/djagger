@@ -2,7 +2,7 @@
 Enums
 =====
 """
-from typing import Union, List, Any, Type, Callable
+from typing import Union, List, Any, Type, Callable, Optional
 from enum import Enum
 
 DJAGGER_HTTP_METHODS = (
@@ -32,15 +32,15 @@ class DjaggerAttributeEnumType(str, Enum):
 
     @classmethod
     def items(cls):
-        """ List of tuples of the enum attr names and the corresponding value"""
+        """List of tuples of the enum attr names and the corresponding value"""
         return [(k, v.value) for k, v in cls.__members__.items()]
 
     @classmethod
     def values(cls):
-        """ List of enum attr string values"""
+        """List of enum attr string values"""
         return [m.value for m in cls.__members__.values()]
 
-    def location(self) -> Union[str, type(None)]:
+    def location(self) -> Optional[str]:
         """Returns the 'in' location value for parameters"""
         location_map = {
             "PATH_PARAMS": "path",
@@ -96,7 +96,7 @@ class DjaggerViewAttributes:
         self,
         view: Union[Type, Callable],
         attr: str,
-        http_method: Union[HttpMethod, type(None)] = None,
+        http_method: Optional[HttpMethod] = None,
     ) -> Any:
 
         """Given a FBV view or CBV view, the general attribute name, and a http method, extracts the attribute from the view starting at the operation-level attribute i.e. get_body_params.
@@ -123,16 +123,16 @@ class DjaggerViewAttributes:
         # from parent class 'cls' attributes if parent class exists
 
         if value == None and hasattr(view, "cls"):
-            return self.from_view(view.cls, attr=attr, http_method=http_method)
+            return self.from_view(view.cls, attr=attr, http_method=http_method)  # type: ignore
 
         return value
 
     def operation(self, http_method: HttpMethod) -> DjaggerAttributeEnumType:
-        """ Returns the DjaggerAttributeEnumType value for the corresponding HttpMethod"""
+        """Returns the DjaggerAttributeEnumType value for the corresponding HttpMethod"""
         op = getattr(self, http_method.value, None)
         if not op:
             raise AttributeError(
-                f"Http method {http_method.value} not found as a callable method in {self.__name__}"
+                f"Http method {http_method.value} not found as a callable method"
             )
         return op
 
@@ -150,7 +150,7 @@ class DjaggerViewAttributes:
 
         self.custom_prefix = custom_prefix
         self.http_methods = http_methods
-        self.api = DjaggerAttributeEnumType(
+        self.api = DjaggerAttributeEnumType(  # type: ignore
             "api", view_attrs
         )  # API-level attribute Enum e.g. 'body_params'
         self.attr_list = self.api.values()

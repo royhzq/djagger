@@ -7,7 +7,7 @@ For official specs, see https://swagger.io/specification/
 from pydantic import BaseModel, Field, ValidationError
 from pydantic.main import ModelMetaclass
 from rest_framework import serializers
-from typing import Optional, List, Dict, Union, Type, Any
+from typing import Optional, List, Dict, Union, Type, Any, cast
 from .serializers import SerializerConverter
 from .utils import schema_set_examples, get_url_patterns, model_field_schemas
 from .generics import set_response_schema_from_serializer_class
@@ -119,7 +119,7 @@ class Reference(BaseModel):
         return None
 
     @classmethod
-    def dereference(cls, schema: Union[Dict, List], definitions: Dict) -> Dict:
+    def dereference(cls, schema: Union[Dict, List], definitions: Dict):
         """Recursively converts all references within a schema into the actual referenced object.
         The resulting schema is the same one without any references.
         """
@@ -250,12 +250,7 @@ class MediaType(BaseModel):
         allow_population_by_field_name = True
 
     @classmethod
-    def _from(
-        cls,
-        model: Union[
-            ModelMetaclass, serializers.SerializerMetaclass, serializers.ListSerializer
-        ],
-    ) -> "MediaType":
+    def _from(cls, model: Any) -> "MediaType":
         """Generates an instance of MediaType from a pydantic model or from a rest_framework serializer"""
 
         media = cls()
@@ -321,7 +316,7 @@ class Parameter(BaseModel):
         with each field having a separate schema.
         All attribute names ending in '_params' are relevant here. Non parameter object attributes should not be passed
         """
-        params = []
+        params: List["Parameter"] = []
 
         if "_params" not in attr.value:
             raise AttributeError(
@@ -336,7 +331,7 @@ class Parameter(BaseModel):
                 f"Parameter object must be pydantic.main.ModelMetaclass type. Got {type(model)}"
             )
 
-        if attr == attr.BODY_PARAMS:
+        if attr == attr.BODY_PARAMS:  # type: ignore
             # Request body handled by extract_request_body()
             return params
 
@@ -734,7 +729,7 @@ class Operation(BaseModel):
         ), "deprecated attribute needs to be boolean"
 
     @classmethod
-    def _from(cls, view: Type, http_method: HttpMethod) -> Union["Operation", None]:
+    def _from(cls, view: Any, http_method: HttpMethod) -> Union["Operation", None]:
         """Extract attributes from a view class to instantiate Operation given the type of http method for the Operation.
         Wil return None if exclude attribute is True.
         """
@@ -915,7 +910,7 @@ class Document(BaseModel):
     def generate(
         cls,
         app_names: List[str] = [],
-        tags: List[Tag] = [],
+        tags: List[Dict[str, str]] = [],
         openapi="3.0.0",
         version="1.0.0",
         servers: List[Server] = [],
@@ -958,7 +953,7 @@ class Document(BaseModel):
         # Create tag objects as provided
         # Note that if tags supplied is empty, they will still be generated when
         # set as attributes in the individual API or endpoints
-        tags = [
+        tags_ = [
             Tag(name=tag["name"], description=tag.get("description", ""))
             for tag in tags
         ]
@@ -974,7 +969,7 @@ class Document(BaseModel):
             openapi=openapi,
             info=info,
             servers=servers,
-            tags=tags,
+            tags=tags_,
             paths=paths,
         )
 

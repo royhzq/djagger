@@ -158,7 +158,7 @@ def get_url_patterns(app_names: List[str]) -> List[Tuple[str, URLPattern]]:
     return results
 
 
-def schema_set_examples(schema: Dict, model: ModelMetaclass):
+def schema_set_examples(schema: Dict, model: Any):
     """Check if a class has callable `example()` and if so, sets the schema 'example' field
     to the result of `example()` callable. The callable should return an instance of the pydantic base model type.
     `example()` should return a single instance of the pydantic base model type.
@@ -210,7 +210,7 @@ def infer_field_type(field: fields.Field):
     if type(field) == fields.DictField:
         if hasattr(field, "child"):
             t = infer_field_type(field.child)
-            return Dict[str, t]
+            return Dict[str, t]  # type: ignore
 
     return mappings.get(type(field))
 
@@ -220,7 +220,7 @@ def field_to_pydantic_args(f: fields.Field) -> Dict:
     to pydantic.create_model() field configs.
     """
 
-    args = {"extra": {}}
+    args: Dict = {"extra": {}}
 
     if hasattr(f, "label"):
         args["alias"] = f.label
@@ -288,8 +288,8 @@ def schema_from_serializer(s: serializers.Serializer) -> ModelMetaclass:
 
     # Config to be passed into pydantic.create_model __configs__ param
     class Config:
-        fields = {}
-        schema_extra = {"required": []}  # Handling 'required' in schema extra
+        fields: Dict = {}
+        schema_extra: Dict = {"required": []}  # Handling 'required' in schema extra
 
     for field_name, field in s.get_fields().items():
 
@@ -299,7 +299,7 @@ def schema_from_serializer(s: serializers.Serializer) -> ModelMetaclass:
         # i.e. my_field =  MySerializer(many=True)
         if isinstance(field, serializers.ListSerializer):
 
-            t = List[schema_from_serializer(field.child)]
+            t = List[schema_from_serializer(field.child)]  # type: ignore
 
             if hasattr(field, "max_length"):
                 Config.fields[field_name].update({"max_items": field.max_length})
@@ -310,7 +310,7 @@ def schema_from_serializer(s: serializers.Serializer) -> ModelMetaclass:
         # Handle ListField
         elif isinstance(field, fields.ListField):
 
-            t = List[infer_field_type(field.child)]
+            t = List[infer_field_type(field.child)]  # type: ignore
 
             if hasattr(field, "max_length"):
                 Config.fields[field_name].update({"max_items": field.max_length})
@@ -341,14 +341,14 @@ def schema_from_serializer(s: serializers.Serializer) -> ModelMetaclass:
 
         Config.fields[field_name].update(field_to_pydantic_args(field))
 
-    model = create_model(name, **create_model_args, __config__=Config)
+    model: ModelMetaclass = create_model(name, **create_model_args, __config__=Config)  # type: ignore
 
     return model
 
 
 def model_field_schemas(
-    model: ModelMetaclass,
-) -> List[Tuple[Dict[str, Any], Dict[str, Any]]]:
+    model: Any,
+) -> List[Tuple[Dict, Dict]]:
     """Returns list of tuple with a JSON Schema for it as the first item.
     Also return a dictionary of definitions with models as keys and their schemas as values.
     Refer to ``pydantic.fields.field_schema`` for reference

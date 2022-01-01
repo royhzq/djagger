@@ -1,5 +1,5 @@
 from rest_framework import fields, serializers
-from typing import List, Dict, Optional, Union, Tuple
+from typing import List, Dict, Optional, Union, Tuple, Type
 from pydantic.main import ModelMetaclass
 from pydantic import BaseModel, create_model
 from decimal import Decimal
@@ -11,7 +11,7 @@ def field_to_pydantic_args(f: fields.Field) -> Dict:
     to pydantic.create_model() field configs.
     """
 
-    args = {"extra": {}}
+    args: Dict = {"extra": {}}
 
     if hasattr(f, "label"):
         args["alias"] = f.label
@@ -128,7 +128,7 @@ class SerializerConverter(BaseModel):
         if type(field) == fields.DictField:
             if hasattr(field, "child"):
                 t = cls.infer_field_type(field.child)
-                return Dict[str, t]
+                return Dict[str, t]  # type: ignore
 
         return mappings.get(type(field))
 
@@ -142,7 +142,7 @@ class SerializerConverter(BaseModel):
         child_model = cls.from_serializer(s.child)
 
         class Config:
-            fields = {"__root__": {}}
+            fields: Dict = {"__root__": {}}
 
         if hasattr(s, "max_length"):
             Config.fields["__root__"].update({"max_items": s.max_length})
@@ -150,10 +150,10 @@ class SerializerConverter(BaseModel):
         if hasattr(s, "min_length"):
             Config.fields["__root__"].update({"min_items": s.min_length})
 
-        model = create_model(name, __root__=(List[child_model], ...), __config__=Config)
+        model = create_model(name, __root__=(List[child_model], ...), __config__=Config)  # type: ignore
         model.__doc__ = s.__doc__
 
-        return model
+        return model  # type: ignore
 
     @classmethod
     def from_serializer(cls, s: serializers.Serializer) -> ModelMetaclass:
@@ -166,8 +166,8 @@ class SerializerConverter(BaseModel):
 
         # Config to be passed into pydantic.create_model __configs__ param
         class Config:
-            fields = {}
-            schema_extra = {"required": []}  # Handling 'required' in schema extra
+            fields: Dict = {}
+            schema_extra: Dict = {"required": []}  # Handling 'required' in schema extra
 
         for field_name, field in s.get_fields().items():
 
@@ -177,7 +177,7 @@ class SerializerConverter(BaseModel):
             # e.g. my_field =  MySerializer(many=True)
             if isinstance(field, serializers.ListSerializer):
 
-                t = List[cls.from_serializer(field.child)]
+                t = List[cls.from_serializer(field.child)]  # type: ignore
 
                 if hasattr(field, "max_length"):
                     Config.fields[field_name].update({"max_items": field.max_length})
@@ -188,7 +188,7 @@ class SerializerConverter(BaseModel):
             # Handle ListField
             elif isinstance(field, fields.ListField):
 
-                t = List[cls.infer_field_type(field.child)]
+                t = List[cls.infer_field_type(field.child)]  # type: ignore
 
                 if hasattr(field, "max_length"):
                     Config.fields[field_name].update({"max_items": field.max_length})
@@ -219,10 +219,12 @@ class SerializerConverter(BaseModel):
 
             Config.fields[field_name].update(field_to_pydantic_args(field))
 
-        model = create_model(name, **create_model_args, __config__=Config)
+        model = create_model(  # type: ignore
+            name, **create_model_args, __config__=Config  # type: ignore
+        )
         model.__doc__ = s.__doc__
 
-        return model
+        return model  # type:ignore
 
     def to_model(self):
 
