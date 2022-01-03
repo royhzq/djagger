@@ -33,6 +33,13 @@ def schema(methods: List[str], **attrs):
                 continue
             setattr(f, k, v)
 
+        # Validate http method strings
+        for method in methods:
+            try:
+                HttpMethod(method.lower())
+            except ValueError:
+                raise ValueError(f"methods must be a list of string http methods e.g., {HttpMethod.values()}")
+        
         # Save the http methods used in the fbv as an attribute
         setattr(f, DJAGGER_HTTP_METHODS, methods)
 
