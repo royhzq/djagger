@@ -332,7 +332,7 @@ class Parameter(BaseModel):
                 f"Parameter object must be pydantic.main.ModelMetaclass type. Got {type(model)}"
             )
 
-        if attr == attr.BODY_PARAMS:  # type: ignore
+        if attr == attr.REQUEST_SCHEMA:  # type: ignore
             # Request body handled by extract_request_body()
             return params
 
@@ -461,7 +461,7 @@ class Operation(BaseModel):
                 # only consider relevant for parameter attributes - attr name ending in '_params'
                 continue
 
-            if ViewAttributes.api.BODY_PARAMS.value in attr:
+            if ViewAttributes.api.REQUEST_SCHEMA.value in attr:
                 # request body params handed by _extract_request_body()
                 continue
 
@@ -540,14 +540,14 @@ class Operation(BaseModel):
             self.description = description
 
     def _extract_request_body(self, view: Type, http_method: HttpMethod):
-        """Extracts ``requestBody`` from the ``<http_method>_BODY_PARAMS`` attribute from the view.
-        ``<http_method>_BODY_PARAMS`` value can be of the following types:
+        """Extracts ``requestBody`` from the ``<http_method>_REQUEST_SCHEMA`` attribute from the view.
+        ``<http_method>_REQUEST_SCHEMA`` value can be of the following types:
             - ``ModelMetaclass``
             - ``Dict[str, Union[ModelMetaclass, Dict]``
         """
 
         request_body = ViewAttributes.from_view(
-            view, ViewAttributes.api.BODY_PARAMS, http_method
+            view, ViewAttributes.api.REQUEST_SCHEMA, http_method
         )
         if not request_body:
             return

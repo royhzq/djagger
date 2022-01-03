@@ -279,7 +279,7 @@ def test_extract_request_body():
 
     # 2. Use API-level attribute
     class View:
-        body_params = Params
+        request_schema = Params
 
     operation = Operation()
     operation._extract_request_body(View, HttpMethod.POST)
@@ -287,8 +287,8 @@ def test_extract_request_body():
 
     # 3. Use operation-level attribute
     class View:
-        body_params = Params
-        post_body_params = PostParams
+        request_schema = Params
+        post_request_schema = PostParams
 
     operation = Operation()
     operation._extract_request_body(View, HttpMethod.POST)
@@ -297,8 +297,8 @@ def test_extract_request_body():
 
     # 3.5 - User operation-level attribute with serializer
     class View:
-        body_params = TestSerializer
-        post_body_params = TestSerializer
+        request_schema = TestSerializer
+        post_request_schema = TestSerializer
 
     operation = Operation()
     operation._extract_request_body(View, HttpMethod.POST)
@@ -308,7 +308,7 @@ def test_extract_request_body():
     # 4 . Case where a dict of multiple request bodies passed
 
     class View:
-        body_params = {
+        request_schema = {
             "application/json": Params,
             "text/plain": PostParams,
             "text/html": TestSerializer,
@@ -325,7 +325,7 @@ def test_extract_request_body():
     # and dicts are used instead of pydantic modes
 
     class View:
-        body_params = {
+        request_schema = {
             "application/json": {
                 "schema": {
                     "title": "custom schema",

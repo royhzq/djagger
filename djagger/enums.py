@@ -72,13 +72,11 @@ class DjaggerViewAttributes:
         "QUERY_PARAMS": "query_params",
         "HEADER_PARAMS": "header_params",
         "COOKIE_PARAMS": "cookie_params",
-        "BODY_PARAMS": "body_params",
+        "REQUEST_SCHEMA": "request_schema",
         "RESPONSE_SCHEMA": "response_schema",
         "SUMMARY": "summary",
         "TAGS": "tags",
         "DESCRIPTION": "description",
-        "CONSUMES": "consumes",  # swagger 2.0
-        "PRODUCES": "produces",  # swagger 2.0
         "OPERATION_ID": "operation_id",
         "DEPRECATED": "deprecated",
         "EXTERNAL_DOCS": "external_docs",
