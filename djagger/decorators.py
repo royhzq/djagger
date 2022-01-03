@@ -4,6 +4,7 @@ Decorators
 """
 from typing import List
 from .enums import HttpMethod, ViewAttributes, DJAGGER_HTTP_METHODS
+import warnings
 
 
 def schema(methods: List[str], **attrs):
@@ -28,7 +29,8 @@ def schema(methods: List[str], **attrs):
 
         for k, v in attrs.items():
             if k not in ViewAttributes.attr_list:
-                raise TypeError(f"schema decorator got an unexpected keyword {k}")
+                warnings.warn(f"schema decorator got an unexpected keyword {k}")
+                continue
             setattr(f, k, v)
 
         # Save the http methods used in the fbv as an attribute

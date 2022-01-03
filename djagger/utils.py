@@ -76,13 +76,13 @@ def clean_regex_string(s: str) -> str:
 
     Example::
 
-        >>s = '^toy\\/^(?P<toyId>[a-zA-Z0-9\-\_]+)\\/details'
+        >>s = '^toy\\/^(?P<toyId>[a-zA-Z0-9-_]+)\\/details'
         >>clean_regex_string(s)
         'toy/{toyId}/details'
 
     """
     s = s.replace("^", "").replace("\\", "")
-    regex_pattern = r"\(\?P<([a-zA-Z0-9\-\_]*)>.*?\)"
+    regex_pattern = r"\(\?P<([a-zA-Z0-9-_]*)>.*?\)"
     return re.sub(regex_pattern, r"{\1}", s).replace("?", "").replace("$", "")
 
 
