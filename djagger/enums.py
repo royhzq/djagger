@@ -2,10 +2,9 @@
 Enums
 =====
 """
-from django.core.exceptions import ImproperlyConfigured
 from typing import Union, List, Any, Type, Callable, Optional
 from enum import Enum
-from .config import DjaggerConfig
+from .config import djagger_config
 
 DJAGGER_HTTP_METHODS = (
     "djagger_http_methods"  # FBV attribute name for http methods used in the FBV
@@ -180,11 +179,4 @@ class DjaggerViewAttributes:
             )
             self.attr_list += getattr(self, http_method).values()
 
-try:
-    from django.conf import settings
-    djagger_conf = DjaggerConfig.parse_obj(settings.DJAGGER_CONFIG)
-
-except (ImproperlyConfigured, AttributeError):
-    djagger_conf = DjaggerConfig()
-
-ViewAttributes = DjaggerViewAttributes(djagger_conf.global_prefix, *HttpMethod.values())
+ViewAttributes = DjaggerViewAttributes(djagger_config.global_prefix, *HttpMethod.values())
