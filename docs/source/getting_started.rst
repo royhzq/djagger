@@ -46,22 +46,22 @@ Features
 --------
 
 | ✔ OpenAPI 3.0 Compliant
-| ✔ Uses ``pydantic`` for schema objects
-| ✔ Convert Serializers to schema objects
+| ✔ Uses pydantic for schema objects
+| ✔ Convert Serializers to pydantic models
 | ✔ All HTTP methods supported
 | ✔ Built-in Views for viewing generated docs
-| ✔ Granular customization when documenting individual Views
+| ✔ Granular customization for individual Views
 | ✔ Supports Class-based Views and Function-based Views
 
 
-**Schema Driven Development** - Use ``pydantic`` to generate schema objects to document your Views. Your schemas can in turn be used to validate your requests and responses to ensure that they are consistent with your documentation.
+**Schema Driven Development** - Use pydantic to generate schema objects to document your Views. Your schemas can in turn be used to validate your requests and responses to ensure that they are consistent with your documentation.
 
 
 Quickstart
 ----------
 
-Simple GET API Example
-~~~~~~~~~~~~~~~~~~~~~~
+Example GET Endpoint
+~~~~~~~~~~~~~~~~~~~~
 .. code:: python
 
     from rest_framework.views import APIView
@@ -91,8 +91,8 @@ Simple GET API Example
     <p>See the generated docs <a href="https://djagger-example.netlify.app/#tag/Blog/paths/~1blog~1articles~1random/get" target="_blank">here</a>, and the code <a href="https://github.com/royhzq/djagger-example/blob/285af0109155f6ef13e94302a0d40749501388cf/Blog/views.py#L26" target="_blank">here</a>.</p>
 
 
-Simple POST API Example
-~~~~~~~~~~~~~~~~~~~~~~~
+Example POST Endpoint
+~~~~~~~~~~~~~~~~~~~~~
 .. code:: python
 
     from rest_framework.views import APIView
@@ -115,7 +115,7 @@ Simple POST API Example
 
     class ArticleCreateAPI(APIView):
 
-        body_params = ArticleCreateSchema
+        request_schema = ArticleCreateSchema
         response_schema = ArticleDetailSchema
 
         def post(self, request):

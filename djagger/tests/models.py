@@ -8,4 +8,4 @@ class Musician(models.Model):
     instrument = models.CharField(max_length=100)
 
     class Meta:
-        app_label='djagger.tests.Musician'
+        app_label='djagger.tests'
