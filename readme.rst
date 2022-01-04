@@ -20,7 +20,7 @@ Automated OpenAPI documentation generator for Django. Djagger provides you with 
 | https://github.com/royhzq/djagger  
 |
 | Documentation:
-| https://djagger-docs.netlify.app/index.html
+| https://djagger-docs.netlify.app
 | 
 
 **Djagger is designed to be:**
@@ -117,5 +117,6 @@ Example POST Endpoint
 
 Documentation & Support
 =======================
+* Read the full documentation for Djagger: https://djagger-docs.netlify.app
 * This project is in continuous development. If you have any questions or would like to contribute, please email `royhung@protonmail.com <royhung@protonmail.com>`_
 * If you want to support this project, do give it a ⭐ on github!
