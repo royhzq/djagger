@@ -1,1 +1,0 @@
-This is a full Django 3.2 "example" project meant for testing purposes.

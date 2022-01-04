@@ -5,15 +5,18 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
-## [1.0.4] - 2021-12-XX
+## [1.1.0] - 2021-01-04
 ### Added
-- Support for redoc-specific fields for `x-logo` and `x-tagGroups` and the corresponding Djagger objects `DjaggerLogo` and `DjaggerTagGroup`.
-- Support for using DRF Serializers directly in setting OpenAPI parameters and responses. Converts to pydantic models under the hood.
-- Added `SerializerConverter` class for converting a DRF Serializer instance into a `pydantic.ModelMetaClass` object.
+- Added documentation.
+- Support for generic views and viewsets.
+- Support for DRF Serializer to pydantic model conversion.
+- Support for multiple responses and different response content types.
+- Support for function-based views via ``schema`` decorator.
+- Added option for a global prefix to all Djagger attributes.
+- Generated schema fully compatible with OpenAPI 3.
 
-### Changed
-- Updated `get_url_patterns()` to fix bug where url pattern route retrieved does not have prefixed path.
-- Restructured tests folder with subfolders for Djagger schema tests.
+### Removed
+- `djagger.swagger.*` pydantic models. Removed support for Swagger 2.0 specification.
 
 ## [1.0.3] - 2021-12-11
 
