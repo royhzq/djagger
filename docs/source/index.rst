@@ -10,10 +10,10 @@
 
 Automated OpenAPI documentation generator for Django. Djagger provides you with a clean and straightforward way to generate a comprehensive API documentation of your Django project by utilizing pydantic to create schema objects for your views.  
 
-| See a working example of a Django project using Djagger: 
+| Example Django project using Djagger: 
 | https://github.com/royhzq/djagger-example
 
-| See the generated API documentation from the example project: 
+| Generated API documentation from the example project: 
 | https://djagger-example.netlify.app/  
 
 | The Djagger repo: 
@@ -68,7 +68,7 @@ Example GET Endpoint
     <p>See the generated docs <a href="https://djagger-example.netlify.app/#tag/Blog/paths/~1blog~1articles~1random/get" target="_blank">here</a>, and the code <a href="https://github.com/royhzq/djagger-example/blob/285af0109155f6ef13e94302a0d40749501388cf/Blog/views.py#L26" target="_blank">here</a>.</p>
 
 
-.. image:: https://user-images.githubusercontent.com/32057276/145702881-29531b7e-7059-406e-b1cb-54d58fcb6900.PNG
+.. image:: https://user-images.githubusercontent.com/32057276/148027310-3248b5aa-f8a5-46d1-b044-044d001dcddd.png
   :width: 800
   :alt: UserDetailsAPI Redoc
   
@@ -113,7 +113,7 @@ Example POST Endpoint
 
     <p>See the generated docs <a href="https://djagger-example.netlify.app/#tag/Blog/paths/~1blog~1articles~1create/post" target="_blank">here</a>, and the code <a href="https://github.com/royhzq/djagger-example/blob/285af0109155f6ef13e94302a0d40749501388cf/Blog/views.py#L45" target="_blank">here</a>.</p>
 
-.. image:: https://user-images.githubusercontent.com/32057276/145703400-1bd56954-5ae7-4f5a-a1ad-560fde824880.PNG
+.. image:: https://user-images.githubusercontent.com/32057276/148027403-4acca98c-e4af-4265-a9f5-c385f143be73.png
   :width: 800
   :alt: CreateItemAPI Redoc
   
