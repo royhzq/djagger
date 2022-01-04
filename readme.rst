@@ -12,15 +12,19 @@ Automated OpenAPI documentation generator for Django. Djagger provides you with 
 
 | Example Django project using Djagger: 
 | https://github.com/royhzq/djagger-example
-
+|
 | Generated API documentation from the example project: 
 | https://djagger-example.netlify.app/  
-
+|
 | The Djagger repo: 
 | https://github.com/royhzq/djagger  
+|
+| Documentation:
+| https://djagger-docs.netlify.app/index.html
+| 
 
+**Djagger is designed to be:**
 
-Djagger is designed to be:
 
 🧾 **Comprehensive** - Every aspect of your API should be document-able straight from your views, to the full extent of the OpenAPi 3.0 specification. 
 
