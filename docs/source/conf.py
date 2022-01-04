@@ -38,6 +38,7 @@ extensions = [
     "sphinx.ext.autodoc",
     "sphinx.ext.autodoc.preserve_defaults",
     "sphinx.ext.napoleon",
+    "sphinx.ext.autosectionlabel",
 ]
 
 # Add any paths that contain templates here, relative to this directory.
@@ -66,3 +67,4 @@ autodoc_class_signature = "separated"
 autodoc_preserve_defaults = True
 
 napoleon_use_rtype = False
+autosectionlabel_prefix_document = True

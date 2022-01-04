@@ -639,7 +639,7 @@ For viewsets, the parent viewset class attributes can also be used for documenti
 Document Generation
 -------------------
 
-To see the generated documentation, ensure that the Djagger URLs are installed correctly. See installation.
+To see the generated documentation, ensure that the Djagger URLs are installed correctly. See :ref:`getting_started:Getting Started`.
 
 
 Configuring the built-in Djagger views

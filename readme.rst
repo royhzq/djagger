@@ -63,14 +63,10 @@ Example GET Endpoint
 
 **Generated documentation**
 
-.. raw:: html 
-
-    <p>See the generated docs <a href="https://djagger-example.netlify.app/#tag/Blog/paths/~1blog~1articles~1random/get" target="_blank">here</a>, and the code <a href="https://github.com/royhzq/djagger-example/blob/285af0109155f6ef13e94302a0d40749501388cf/Blog/views.py#L26" target="_blank">here</a>.</p>
-
-
 .. image:: https://user-images.githubusercontent.com/32057276/148027310-3248b5aa-f8a5-46d1-b044-044d001dcddd.png
   :width: 800
   :alt: UserDetailsAPI Redoc
+  :target: https://djagger-example.netlify.app/#tag/Blog/paths/~1blog~1articles~1random/get
   
 Example POST Endpoint
 =====================
@@ -109,28 +105,13 @@ Example POST Endpoint
 
 **Generated documentation**
 
-.. raw:: html 
-
-    <p>See the generated docs <a href="https://djagger-example.netlify.app/#tag/Blog/paths/~1blog~1articles~1create/post" target="_blank">here</a>, and the code <a href="https://github.com/royhzq/djagger-example/blob/285af0109155f6ef13e94302a0d40749501388cf/Blog/views.py#L45" target="_blank">here</a>.</p>
-
 .. image:: https://user-images.githubusercontent.com/32057276/148027403-4acca98c-e4af-4265-a9f5-c385f143be73.png
   :width: 800
   :alt: CreateItemAPI Redoc
+  :target: https://djagger-example.netlify.app/#tag/Blog/paths/~1blog~1articles~1create/post
   
 
 Documentation & Support
 =======================
 * This project is in continuous development. If you have any questions or would like to contribute, please email `royhung@protonmail.com <royhung@protonmail.com>`_
 * If you want to support this project, do give it a ⭐ on github!
-
-
-
-.. toctree::
-   :maxdepth: 2
-   :caption: Contents:
-
-   getting_started
-   user_guide
-   api
-   release_history
-   contributing
