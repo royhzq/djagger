@@ -1,8 +1,9 @@
 from rest_framework import fields, serializers
-from typing import List, Dict, Optional, Union, Tuple, Type
+from typing import List, Dict, Optional, Union, Tuple, Type, Any
 from pydantic.main import ModelMetaclass
 from pydantic import BaseModel, create_model
 from decimal import Decimal
+from enum import Enum
 
 
 def field_to_pydantic_args(f: fields.Field) -> Dict:
@@ -86,7 +87,7 @@ class SerializerConverter(BaseModel):
         arbitrary_types_allowed = True
 
     @classmethod
-    def infer_field_type(cls, field: fields.Field):
+    def infer_field_type(cls, field: fields.Field, field_name: str):
         """Classifies DRF Field types into primitive python types or
         creates an appropriate pydantic model metaclass types if the field itself
         is a Serializer class.
@@ -127,8 +128,20 @@ class SerializerConverter(BaseModel):
         # Handle DictField
         if type(field) == fields.DictField:
             if hasattr(field, "child"):
-                t = cls.infer_field_type(field.child)
+                t = cls.infer_field_type(field.child, field_name)
                 return Dict[str, t]  # type: ignore
+
+        # Handle ChoiceField and MultipleChoiceField - represent as Enum
+        if (
+            type(field) == fields.ChoiceField
+            or type(field) == fields.MultipleChoiceField
+        ):
+            if hasattr(field, "choices"):
+                choices: List[Any] = list(field.choices.keys())
+                choice_map: Dict[str, Any] = {str(i): v for i, v in enumerate(choices)}
+                # dynamically creating Enum types through the dict literal argument
+                # to allow for mixed types in the Enum
+                return Enum(field_name, choice_map)  # type: ignore
 
         return mappings.get(type(field))
 
@@ -188,7 +201,7 @@ class SerializerConverter(BaseModel):
             # Handle ListField
             elif isinstance(field, fields.ListField):
 
-                t = List[cls.infer_field_type(field.child)]  # type: ignore
+                t = List[cls.infer_field_type(field.child, field_name)]  # type: ignore
 
                 if hasattr(field, "max_length"):
                     Config.fields[field_name].update({"max_items": field.max_length})
@@ -202,7 +215,7 @@ class SerializerConverter(BaseModel):
                 if hasattr(field, "get_fields"):
                     t = cls.from_serializer(field)
                 else:
-                    t = cls.infer_field_type(field)
+                    t = cls.infer_field_type(field, field_name)
 
             default = ...
 

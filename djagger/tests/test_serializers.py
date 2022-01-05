@@ -3,6 +3,7 @@
 
 from rest_framework import fields, serializers
 from ..serializers import SerializerConverter
+from ..openapi import Reference
 
 
 def test_all_primiitive_fields():
@@ -39,7 +40,6 @@ def test_all_primiitive_fields():
         jsonfield = fields.JSONField()
 
     model = SerializerConverter(s=TestSerializer()).to_model()
-
     assert model.schema()
 
 
@@ -112,3 +112,26 @@ def test_model_serializer():
 
     for field in TestModelSerializer().get_fields().keys():
         assert field in pydantic_model.__fields__
+
+
+def test_choice_field():
+    class TestChoiceSerializer(serializers.Serializer):
+        options1 = serializers.ChoiceField(choices=["A", "B", "C"])
+        options2 = serializers.ChoiceField(choices=[("A", 1), ("B", 2)])
+        options3 = serializers.MultipleChoiceField(choices=["X", "Y", 4])
+        options4 = serializers.MultipleChoiceField(
+            choices=[("X", "x"), ("Y", "y"), (4, "4")]
+        )
+
+    pydantic_model = SerializerConverter(s=TestChoiceSerializer()).to_model()
+    schema = pydantic_model.schema()
+    definitions = schema.pop("definitions")
+    schema_deref = Reference.dereference(schema, definitions)
+
+    # Check if enum values are the same in ChoiceField and Enum representation
+    for field_name, field in TestChoiceSerializer().get_fields().items():
+
+        choice_values = list(field.choices.keys())
+        enum_values = schema_deref["properties"][field_name]["enum"]
+
+        assert set(choice_values) == set(enum_values)
