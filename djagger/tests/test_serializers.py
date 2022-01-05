@@ -10,8 +10,6 @@ def test_all_primiitive_fields():
     # Test serializer with basic field types
     # No nested serializers
 
-    
-    
     class TestSerializer(serializers.Serializer):
 
         booleanfield = fields.BooleanField()
@@ -68,6 +66,7 @@ def test_nested_serializers_many():
 
     assert model.schema()
 
+
 def test_nested_list_fields():
     class L2(serializers.Serializer):
         char = fields.CharField()
@@ -99,17 +98,17 @@ def test_list_serializer():
     ).to_model()
     assert model.schema()
 
+
 def test_model_serializer():
 
     from .models import Musician
 
     class TestModelSerializer(serializers.ModelSerializer):
-
         class Meta:
             model = Musician
-            fields = '__all__'
-        
+            fields = "__all__"
+
     pydantic_model = SerializerConverter(s=TestModelSerializer()).to_model()
-    
+
     for field in TestModelSerializer().get_fields().keys():
         assert field in pydantic_model.__fields__
