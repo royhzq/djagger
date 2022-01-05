@@ -16,10 +16,10 @@ Automated OpenAPI documentation generator for Django. Djagger provides you with 
 | Generated API documentation from the example project: 
 | https://djagger-example.netlify.app/  
 |
-| The Djagger repo: 
+| Djagger repo: 
 | https://github.com/royhzq/djagger  
 |
-| Documentation:
+| Full Documentation:
 | https://djagger-docs.netlify.app
 | 
 
@@ -33,6 +33,40 @@ Automated OpenAPI documentation generator for Django. Djagger provides you with 
 
 
 🍭 **Easy** - Djagger uses pure, unadulterated pydantic models to generate schemas. If you have used pydantic, there is no learning curve. If you have not heard of pydantic, it is a powerful data validation library that is pretty straightforward to pickup (like dataclasses). `Check it out here <https://pydantic-docs.helpmanual.io/>`_. Either way, documenting your APIs will feel less like a chore.
+
+
+Quickstart
+----------
+
+Install using ``pip``
+
+.. code:: bash
+
+    pip install djagger
+
+Add ``djagger`` to your ``INSTALLED_APPS`` setting in your Django project like this:
+
+.. code:: python
+
+    INSTALLED_APPS = [
+        ...
+        'djagger',
+    ]
+  
+
+Include the djagger URLconf in your project ``urls.py`` like this if you want to use the built-in document views.
+
+.. code:: python
+
+    urlpatterns = [
+        ...
+        path('djagger/', include('djagger.urls')),
+    ]
+
+.. NOTE::
+   * To see the generated documentation, use the route **/djagger/api/docs**. Djagger uses `Redoc <https://github.com/Redocly/redoc>`_ as the default client generator.       
+   * To get the generated JSON schema file, use the route **/djagger/schema.json**.                                                                                           
+
 
 Examples
 --------
@@ -105,14 +139,14 @@ Example POST Endpoint
             return Response({})
 
 
-
-
 **Generated documentation**
 
 .. image:: https://user-images.githubusercontent.com/32057276/148027403-4acca98c-e4af-4265-a9f5-c385f143be73.png
   :width: 800
   :alt: CreateItemAPI Redoc
   :target: https://djagger-example.netlify.app/#tag/Blog/paths/~1blog~1articles~1create/post
+  
+For more involved examples, check out the `example project <https://github.com/royhzq/djagger-example>`_ and the `API documentation <https://djagger-example.netlify.app/>`_ generated from that project.
   
 
 Documentation & Support
