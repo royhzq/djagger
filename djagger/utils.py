@@ -164,7 +164,7 @@ def schema_set_examples(schema: Dict, model: Any):
     """
     if hasattr(model, "example"):
         if callable(model.example):
-            schema["example"] = model.example().dict(by_alias=True)
+            schema["example"] = model.example().json(by_alias=True)
     return schema
 
 
