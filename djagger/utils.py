@@ -117,8 +117,7 @@ def list_urls(resolver: URLResolver, prefix="") -> List[Tuple[str, URLPattern]]:
 
     for url in urls:
         if isinstance(url, URLResolver):
-            prefix = get_pattern_str(url.pattern)
-            nested_results = list_urls(url, prefix=prefix)
+            nested_results = list_urls(url, prefix=get_pattern_str(url.pattern))
             results += nested_results
             continue
 
@@ -165,7 +164,7 @@ def schema_set_examples(schema: Dict, model: Any):
     """
     if hasattr(model, "example"):
         if callable(model.example):
-            schema["example"] = model.example().dict(by_alias=True)
+            schema["example"] = model.example().json(by_alias=True)
     return schema
 
 
