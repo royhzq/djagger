@@ -152,7 +152,7 @@ def get_url_patterns(app_names: List[str], url_names: List[str] = []) -> List[Tu
 
             if path_app_name not in app_names:
                 continue
-        elif url_names:
+        if url_names:
             if url_pattern.name not in url_names:
                 continue
 
