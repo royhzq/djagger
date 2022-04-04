@@ -928,13 +928,14 @@ class Document(BaseModel):
         contact_url="",
         license_name="",
         license_url="",
+        url_names: List[str] = [],
         **kwargs,
     ) -> dict:
         """Inspects URLPatterns in given list of apps to generate the openAPI json object for the Django project.
         Returns the JSON string object for the resulting OAS document.
         """
 
-        url_patterns = get_url_patterns(app_names)
+        url_patterns = get_url_patterns(app_names, url_names)
         paths: Dict[str, Path] = {}
 
         for route, url_pattern in url_patterns:
