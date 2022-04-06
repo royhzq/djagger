@@ -127,10 +127,13 @@ def list_urls(resolver: URLResolver, prefix="") -> List[Tuple[str, URLPattern]]:
     return results
 
 
-
-def get_url_patterns(app_names: List[str], url_names: List[str] = []) -> List[Tuple[str, URLPattern]]:
+def get_url_patterns(
+    app_names: List[str], url_names: List[str] = []
+) -> List[Tuple[str, URLPattern]]:
     """Given a list of app names in the project, return a filtered list of URLPatterns that contains a view function or class
     that are part of the listed apps. Include all apps, less ``djagger`` if ``app_names`` is an empty list.
+
+    If ``url_names`` is provided, will further filter the list to only include URLPatterns that match the URL names as provided in the ``url_names`` list.
     """
     # List of app modules
     results = []

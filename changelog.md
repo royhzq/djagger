@@ -4,7 +4,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [1.1.1] - 2021-04-06
+## [1.1.2] - 2022-04-06
+
+### Added
+- Added `url_names` parameter to `get_url_patterns` to allow `DJAGGER_DOCUMENT` to filter API endpoints that should be documented via their url names.
+- Added missing `.gitignore` file.
+
+### Fixed
+- Fixed date typos in this changelog file.
+
+## [1.1.1] - 2022-02-06
 ### Added
 - Rest framework ``serializers.ChoiceField`` and ``serializers.MultipleChoiceField`` will now be represented as ``Enum`` types with enum values correctly reflected in the schema.
 - Documentation for using Tags.
@@ -13,7 +22,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fix bug where schema examples are not generated correctly.
 - Fix bug where the request URL for the objects are generated with an incorrect prefix.
 
-## [1.1.0] - 2021-01-04
+## [1.1.0] - 2022-01-04
 ### Added
 - Added documentation.
 - Support for generic views and viewsets.
