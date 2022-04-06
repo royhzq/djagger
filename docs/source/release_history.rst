@@ -1,6 +1,33 @@
 Release History
 ===============
 
+1.1.2
+-----
+
+**Added**
+
+* Added ``url_names`` parameter to ``get_url_patterns`` to allow ``DJAGGER_DOCUMENT`` to filter API endpoints that should be documented via their url names.
+* Added missing ``.gitignore`` file.
+
+**Fixed**
+
+* Fixed date typos in this changelog file.
+
+
+1.1.1
+-----
+
+**Added**
+
+* Rest framework ``serializers.ChoiceField`` and ``serializers.MultipleChoiceField`` will now be represented as ``Enum`` types with enum values correctly reflected in the schema.
+* Documentation for using Tags.
+
+**Fixed**
+
+* Fix bug where schema examples are not generated correctly.
+* Fix bug where the request URL for the objects are generated with an incorrect prefix.
+
+
 1.1.0
 -----
 
