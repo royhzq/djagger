@@ -18,7 +18,7 @@ from .enums import (
     DjaggerAttributeEnumType,
     DJAGGER_HTTP_METHODS,
 )
-
+from enum import Enum
 import uuid
 import inspect
 import warnings
@@ -171,8 +171,8 @@ class Link(BaseModel):
 
 class OAuthFlow(BaseModel):
 
-    authorizationUrl: str
-    tokenURL: str
+    authorizationUrl: Optional[str]
+    tokenURL: Optional[str]
     refreshURL: Optional[str]
     scopes: Dict[str, str]
 
@@ -188,15 +188,20 @@ SecurityRequirement = Dict[str, List[str]]
 
 
 class SecurityScheme(BaseModel):
+    class SecuritySchemeType(Enum):
+        apiKey = "apiKey"
+        http = "http"
+        oauth2 = "oauth2"
+        openIdConnect = "openIdConnect"
 
-    type_: str = Field(alias="type")
+    type_: SecuritySchemeType = Field(alias="type")
     description: Optional[str]
-    name: str
-    in_: str = Field(alias="in")
-    scheme: str
+    name: Optional[str]
+    in_: Optional[str] = Field(alias="in")
+    scheme: Optional[str]
     bearerFormat: Optional[str]
-    flows: OAuthFlows
-    openIdConnectUrl: str
+    flows: Optional[OAuthFlows]
+    openIdConnectUrl: Optional[str]
 
 
 Callback = Dict[str, "Path"]
@@ -929,6 +934,7 @@ class Document(BaseModel):
         license_name="",
         license_url="",
         url_names: List[str] = [],
+        components: Components = Components(),
         **kwargs,
     ) -> dict:
         """Inspects URLPatterns in given list of apps to generate the openAPI json object for the Django project.
@@ -975,8 +981,10 @@ class Document(BaseModel):
             openapi=openapi,
             info=info,
             servers=servers,
+            security=security,
             tags=tags_,
             paths=paths,
+            components=components,
         )
 
         document_dict = document.dict(by_alias=True, exclude_none=True)
