@@ -188,7 +188,7 @@ SecurityRequirement = Dict[str, List[str]]
 
 
 class SecurityScheme(BaseModel):
-    class SecuritySchemeType(Enum):
+    class SecuritySchemeType(str, Enum):
         apiKey = "apiKey"
         http = "http"
         oauth2 = "oauth2"
