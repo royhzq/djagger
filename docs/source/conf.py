@@ -21,12 +21,12 @@ settings.configure()
 
 # -- Project information -----------------------------------------------------
 
-project = "Djagger 1.1.2"
+project = "Djagger 1.1.3"
 copyright = "2022, royhzq"
 author = "royhzq"
 
 # The full version, including alpha/beta/rc tags
-release = "1.1.2"
+release = "1.1.3"
 
 
 # -- General configuration ---------------------------------------------------

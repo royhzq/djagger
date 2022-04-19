@@ -831,6 +831,63 @@ To create your own documentation view, generate the document via Djagger's ``Doc
 
 The ``custom_doc_view`` view in the example returns a JSON response containing the OpenAPI 3 compliant JSON schema. You may then use your preferred documentation client generator to consume the JSON schema from the view to generate your desired documentation.
 
+Security & Authentication
+-------------------------
+Documenting security schemes for broadly follows the OpenAPI format whereby the Security Scheme objects will need to be defined under the Components Object in the root of the OpenAPI document. What this means in Djagger will be that the Security Scheme object will be defined in the ``DJAGGER_DOCUMENT`` parameter in ``settings.py``.
+
+For example:
+
+.. code:: python
+
+    # settings.py
+
+    DJAGGER_DOCUMENT = {
+        ...
+        "components": {
+            "securitySchemes": {
+                "http": {
+                    "type": "http", 
+                    "scheme": "basic"
+                },
+                "jwt": {
+                    "type": "http",
+                    "scheme": "bearer",
+                    "bearerFormat": "JWT",
+                },
+            }
+        }
+        ...
+    }
+
+Under the ``components`` key in ``DJAGGER_DOCUMENT``, a ``securitySchemes`` key should be present that holds a dictionary. In this dictionary, you can declare the names of your security schemes e.g., ``http``, or ``jwt`` as they keys and the values will be dictionary objects corresponding to the Security Scheme object in the OpenAPI specification.
+
+.. raw:: html
+
+    <p>For more details on declaring security schmee objects, please see the OpenAPI specification documentation here <a href="https://swagger.io/specification/#security-scheme-object" target="_blank">here</a></p>
+
+
+Next, to document your endpoints with the respective security schemes as declared in ``DJAGGER_DOCUMENT``, declare a ``security`` attribute in your API View which is of type ``List[Dict[str, List[str]]]``. This verbose way of documenting an endpoint's authentication schemes is to be consistent with the OpenAPI specification. 
+
+For example:
+
+.. code:: python
+
+    class PlaceOrderAPI(APIView):
+
+        summary = "Place an order for a toy"
+        ...
+        security = [
+            {"http": []}
+        ]
+
+        def post(self, request):
+            ...
+            return Response({})
+
+.. raw:: html
+
+    <p>For more details on the security requirement object, please see the OpenAPI specification documentation here <a href="https://swagger.io/specification/#security-requirement-object" target="_blank">here</a></p>
+
 
 Global attribute prefix
 -----------------------
