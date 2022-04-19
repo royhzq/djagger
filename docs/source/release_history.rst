@@ -1,6 +1,13 @@
 Release History
 ===============
 
+1.1.3
+-----
+
+**Fixed**
+
+* Fixed bug where authorizations and security schemes were not being rendered. ``components`` parameter passed was not being proceessed in ``Document.generate``.
+
 1.1.2
 -----
 
