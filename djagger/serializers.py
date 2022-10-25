@@ -95,7 +95,6 @@ class SerializerConverter(BaseModel):
         """
         mappings = {
             fields.BooleanField: bool,
-            fields.NullBooleanField: bool,
             fields.CharField: str,
             fields.EmailField: str,
             fields.RegexField: str,
