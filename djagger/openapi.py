@@ -821,8 +821,7 @@ class Path(BaseModel):
                     )  # i.e. get(), post(), put() ...
                     # Add the View class as an attribute 'cls' to the action view function
                     # as a fallback reference.
-                    if not hasattr(view_func, "cls"):
-                        view_func.cls = view
+                    view_func.cls = view
 
                     operation = Operation._from(view_func, http_method)
                     if not operation:
