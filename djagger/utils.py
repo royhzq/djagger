@@ -182,7 +182,6 @@ def infer_field_type(field: fields.Field):
     """
     mappings = {
         fields.BooleanField: bool,
-        fields.NullBooleanField: bool,
         fields.CharField: str,
         fields.EmailField: str,
         fields.RegexField: str,
