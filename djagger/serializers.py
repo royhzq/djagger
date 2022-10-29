@@ -14,9 +14,6 @@ def field_to_pydantic_args(f: fields.Field) -> Dict:
 
     args: Dict = {}
 
-    if hasattr(f, "label"):
-        args["alias"] = f.label
-
     if hasattr(f, "help_text"):
         args["description"] = f.help_text
 
