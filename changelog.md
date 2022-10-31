@@ -9,6 +9,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Removed
 
 - Removed support for DRF `NullBooleanField` field for compatibility with the latest DRF version 3.14.
+- Removed mapping of DRF serializer `label` to pydantic Field `alias` parameter.
+
+### Fixed
+
+- Bug where documentation for generic views are duplicated.
 
 ## [1.1.3] - 2022-04-17
 
