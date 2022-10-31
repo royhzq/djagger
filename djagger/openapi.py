@@ -856,8 +856,7 @@ class Path(BaseModel):
 
                     # Add the Viewset class as an attribute 'cls' to the action view function
                     # as a fallback reference.
-                    if not hasattr(action_fbv_view, "cls"):
-                        action_fbv_view.cls = viewset_class
+                    action_fbv_view.cls = viewset_class
 
                     operation = Operation._from(action_fbv_view, http_method)
                     if not operation:
