@@ -1,6 +1,27 @@
 Release History
 ===============
 
+
+1.1.4
+-----
+
+**Removed**
+
+* Removed support for DRF ``NullBooleanField`` field for compatibility with the latest DRF version 3.14.
+- Removed mapping of DRF serializer ``label`` to pydantic Field ``alias`` parameter.
+
+**Fixed**
+
+- Bug where documentation for generic views are duplicated.
+
+1.1.3
+-----
+
+**Fixed**
+
+* Fixed bug where authorizations and security schemes were not being rendered. ``components`` parameter passed was not being proceessed in ``Document.generate``.
+
+
 1.1.2
 -----
 
